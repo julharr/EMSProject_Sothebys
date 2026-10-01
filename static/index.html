@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wealth Signal Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand">
+      <div class="wordmark">Wealth Signal Monitor</div>
+      <div class="tagline">Death · Divorce · Debt · Disposal — headlines screened every <span id="interval">30</span> minutes</div>
+    </div>
+    <div class="status">
+      <span id="mode-pill" class="pill">—</span>
+      <div class="status-lines">
+        <div><span class="k">Last pull</span> <span id="last-pull">—</span></div>
+        <div><span class="k">Next pull</span> <span id="next-pull">—</span></div>
+      </div>
+      <div class="quota" title="NewsAPI requests used in the last 24 hours">
+        <div class="quota-label"><span id="quota-used">0</span> / <span id="quota-limit">95</span> <span class="k">requests · 24h</span></div>
+        <div class="quota-bar"><div id="quota-fill"></div></div>
+      </div>
+      <button id="pull-btn" class="btn">Pull now</button>
+    </div>
+  </header>
+
+  <section class="signals" id="signal-cards" aria-label="Signals by type"></section>
+
+  <section class="controls">
+    <div class="seg" role="tablist">
+      <button class="seg-btn active" data-view="signals">Wealth signals <span id="count-signals" class="count"></span></button>
+      <button class="seg-btn" data-view="all">All stories <span id="count-all" class="count"></span></button>
+    </div>
+    <input id="search" type="search" placeholder="Search headlines, people, sources…" autocomplete="off">
+    <select id="confidence" aria-label="Minimum confidence">
+      <option value="low">Any confidence</option>
+      <option value="medium" selected>Medium & high</option>
+      <option value="high">High only</option>
+    </select>
+    <div class="tag-filter" id="tag-filter"></div>
+  </section>
+
+  <main>
+    <table class="feed">
+      <thead>
+        <tr>
+          <th class="c-time">Pulled</th>
+          <th class="c-signal">Signal</th>
+          <th class="c-headline">Headline</th>
+          <th class="c-tags">Tags</th>
+          <th class="c-people">Key people</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty" hidden>No stories match these filters.</div>
+  </main>
+
+  <div id="scrim" class="scrim" hidden></div>
+  <aside id="drawer" class="drawer" aria-hidden="true" role="dialog" aria-label="Story detail">
+    <button class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
