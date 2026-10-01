@@ -83,5 +83,11 @@ def bootstrap():
 
 
 if __name__ == "__main__":
+    import threading
+    import webbrowser
+
     bootstrap()
+    url = f"http://localhost:{config.PORT}"
+    print(f"\n  Wealth Signal Monitor running at {url}  (Ctrl+C to stop)\n", flush=True)
+    threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(host="127.0.0.1", port=config.PORT, debug=False, use_reloader=False)
