@@ -39,6 +39,9 @@ without spending requests. "Pull now" simulates the next pull.
 - Each pull is exactly **one** request. At 30-minute intervals that's 48/day.
 - `DAILY_REQUEST_LIMIT` (default 95) is enforced over a rolling 24 hours, including "Pull now" clicks
   and failed requests. The header shows the meter.
+- On startup the app spends one extra request catching up: the wealth query over the last 48 hours
+  (`BACKFILL_HOURS`), so the table isn't empty on day one. It runs at most once every 20 hours, so
+  restarting the server doesn't burn requests. Turn it off with `BACKFILL_ON_START=false`.
 - `PULL_MODE=alternate` (default) switches between `/top-headlines` (general US news) and
   `/everything` with a wealth-event query (`EVERYTHING_QUERY` in `app/config.py`). The second one is
   where most signals come from; general headlines alone rarely mention private wealth.

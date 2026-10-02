@@ -13,10 +13,10 @@ _pull_lock = threading.Lock()
 def next_mode():
     if config.PULL_MODE in ("top", "everything"):
         return config.PULL_MODE
-    return "top" if db.pull_count() % 2 == 0 else "everything"
+    return "everything" if db.last_regular_mode() == "top" else "top"
 
 
-def run_pull(manual=False, demo_minutes_ago=0):
+def run_pull(manual=False, demo_minutes_ago=0, mode=None):
     """Do one pull. Returns a status dict. Never exceeds the rolling 24h quota."""
     if not _pull_lock.acquire(blocking=False):
         return {"status": "busy"}
@@ -28,7 +28,7 @@ def run_pull(manual=False, demo_minutes_ago=0):
         if used >= config.DAILY_REQUEST_LIMIT:
             return {"status": "quota", "message": f"{used}/{config.DAILY_REQUEST_LIMIT} requests used in the last 24h"}
 
-        mode = next_mode()
+        mode = mode or next_mode()
         pull_id = db.start_pull(mode)
         try:
             fetched = newsapi_client.fetch(mode)
@@ -83,7 +83,25 @@ def _loop():
         # A failed pull is still recorded, so the next attempt waits a full interval.
 
 
+def backfill_if_needed():
+    """One request on startup for the last day's wealth stories, at most once per 20h."""
+    if config.DEMO_MODE or not config.BACKFILL_ON_START:
+        return None
+    since = db.hours_since_mode("backfill")
+    if since is not None and since < 20:
+        log.info("Catch-up skipped: last one ran %.1fh ago", since)
+        return None
+    result = run_pull(mode="backfill")
+    log.info("Catch-up on the last %dh: %s", config.BACKFILL_HOURS, result)
+    return result
+
+
+def _start():
+    backfill_if_needed()
+    _loop()
+
+
 def start_scheduler():
-    t = threading.Thread(target=_loop, name="pull-scheduler", daemon=True)
+    t = threading.Thread(target=_start, name="pull-scheduler", daemon=True)
     t.start()
     return t

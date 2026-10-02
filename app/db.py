@@ -96,6 +96,21 @@ def last_pull():
         return dict(row) if row else None
 
 
+def last_regular_mode():
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT mode FROM pulls WHERE mode IN ('top', 'everything') ORDER BY id DESC LIMIT 1").fetchone()
+        return row[0] if row else None
+
+
+def hours_since_mode(mode):
+    with connect() as conn:
+        row = conn.execute("SELECT MAX(started_at) FROM pulls WHERE mode=?", (mode,)).fetchone()
+    if not row or not row[0]:
+        return None
+    return (datetime.now(timezone.utc) - datetime.fromisoformat(row[0])).total_seconds() / 3600
+
+
 def pull_count():
     with connect() as conn:
         return conn.execute("SELECT COUNT(*) FROM pulls").fetchone()[0]

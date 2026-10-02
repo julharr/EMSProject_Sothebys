@@ -1,5 +1,6 @@
 """One NewsAPI request per pull. Nothing here loops or paginates — the quota is precious."""
 import re
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -13,10 +14,17 @@ class NewsAPIError(Exception):
 
 
 def fetch(mode):
-    """mode: 'top' or 'everything'. Returns a list of normalized article dicts."""
+    """mode: 'top', 'everything' or 'backfill'. Returns a list of normalized article dicts."""
     if mode == "top":
         url = f"{BASE}/top-headlines"
         params = {"country": config.NEWSAPI_COUNTRY, "pageSize": 100}
+    elif mode == "backfill":
+        # The wealth query over the last BACKFILL_HOURS, ranked by relevance so the 100 results
+        # spread across the whole window instead of all landing in its newest hour.
+        since = datetime.now(timezone.utc) - timedelta(hours=config.BACKFILL_HOURS)
+        url = f"{BASE}/everything"
+        params = {"q": config.EVERYTHING_QUERY, "language": "en", "sortBy": "relevancy", "pageSize": 100,
+                  "from": since.strftime("%Y-%m-%dT%H:%M:%S")}
     else:
         url = f"{BASE}/everything"
         params = {"q": config.EVERYTHING_QUERY, "language": "en", "sortBy": "publishedAt", "pageSize": 100}

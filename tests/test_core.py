@@ -117,6 +117,24 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([c.args[0] for c in f.call_args_list], ["top", "everything"])
 
 
+    def test_backfill_runs_once_then_skips_and_keeps_alternation(self):
+        with mock.patch.object(config, "DEMO_MODE", False), \
+             mock.patch.object(newsapi_client, "fetch", return_value=[]) as f:
+            self.assertEqual(pipeline.backfill_if_needed()["mode"], "backfill")
+            self.assertIsNone(pipeline.backfill_if_needed())  # within 20h -> skipped
+            pipeline.run_pull()
+        self.assertEqual([c.args[0] for c in f.call_args_list], ["backfill", "top"])
+
+    def test_backfill_request_has_time_window(self):
+        resp = mock.Mock(status_code=200, headers={"content-type": "application/json"},
+                         json=lambda: {"status": "ok", "articles": []})
+        with mock.patch("requests.get", return_value=resp) as g:
+            newsapi_client.fetch("backfill")
+        params = g.call_args.kwargs["params"]
+        self.assertIn("from", params)
+        self.assertEqual(params["sortBy"], "relevancy")
+
+
 class EnrichTests(unittest.TestCase):
     def setUp(self):
         db.init()

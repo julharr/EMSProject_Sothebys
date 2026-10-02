@@ -127,6 +127,9 @@
     $("#count-signals").textContent = signalCount;
     $("#count-all").textContent = state.articles.length;
     $("#empty").hidden = rows.length > 0;
+    $("#empty").textContent = state.view === "signals" && !signalCount && state.articles.length
+      ? `No wealth signals yet. ${state.articles.length} stories are under “All stories”.`
+      : "No stories match these filters.";
 
     let lastPull = null;
     const html = [];
