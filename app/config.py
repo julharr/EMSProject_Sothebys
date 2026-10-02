@@ -1,13 +1,28 @@
 import os
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-except ImportError:
-    pass
-
 ROOT = Path(__file__).resolve().parent.parent
+ENV_FILE = ROOT / ".env"
+
+
+def _load_env_file(path):
+    """Minimal .env reader (no dependency). Values in the file win over unset/empty env vars."""
+    if not path.exists():
+        return False
+    raw = path.read_bytes()
+    text = raw.decode("utf-16") if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else raw.decode("utf-8-sig", "replace")
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        key, val = key.strip(), val.strip().strip('"').strip("'")
+        if val and not os.environ.get(key):
+            os.environ[key] = val
+    return True
+
+
+ENV_FILE_FOUND = _load_env_file(ENV_FILE)
 
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "").strip()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()

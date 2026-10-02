@@ -66,7 +66,22 @@ def pull_now():
     return jsonify(pipeline.run_pull(manual=True))
 
 
+def explain_config():
+    """Say plainly where settings came from, so 'why am I in demo mode?' answers itself."""
+    if not config.ENV_FILE_FOUND:
+        others = sorted(p.name for p in config.ROOT.glob(".env*") if p.name != ".env.example")
+        hint = f" Found {', '.join(others)} instead — rename it to exactly .env" if others else \
+            " Create it with:  cp .env.example .env   (Windows: copy .env.example .env)"
+        logging.warning("No .env file at %s.%s", config.ENV_FILE, hint)
+    elif not config.NEWSAPI_KEY:
+        logging.warning(".env found at %s but NEWSAPI_KEY is empty. Put your key after the = sign.", config.ENV_FILE)
+    else:
+        k = config.NEWSAPI_KEY
+        logging.info("NewsAPI key loaded from .env (%s…%s)", k[:4], k[-4:])
+
+
 def bootstrap():
+    explain_config()
     db.init()
     if config.DEMO_MODE:
         demo_data.seed_profiles()
@@ -82,10 +97,20 @@ def bootstrap():
                      config.PULL_INTERVAL_MINUTES, "claude" if config.USE_CLAUDE else "rules")
 
 
+def port_in_use(port):
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
 if __name__ == "__main__":
+    import sys
     import threading
     import webbrowser
 
+    if port_in_use(config.PORT):
+        sys.exit(f"\n  Port {config.PORT} is already in use — an older copy of this server is probably still running.\n"
+                 f"  Close that terminal window (or press Ctrl+C in it), then run python server.py again.\n")
     bootstrap()
     url = f"http://localhost:{config.PORT}"
     print(f"\n  Wealth Signal Monitor running at {url}  (Ctrl+C to stop)\n", flush=True)

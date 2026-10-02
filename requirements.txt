@@ -1,5 +1,4 @@
 flask>=3.0
 requests>=2.31
-python-dotenv>=1.0
 # Optional: only needed if you set ANTHROPIC_API_KEY for AI tagging
 anthropic>=1.0
