@@ -15,6 +15,19 @@ python server.py              # open http://localhost:5050
 With no `NEWSAPI_KEY` it runs in **demo mode** with a fictional feed, so you can review the design
 without spending requests. "Pull now" simulates the next pull.
 
+## Pages
+
+- **`/` — Signal Desk.** Overview brief, signal feed, lead pipeline, AI researcher, and the Method & data page.
+  Leads are built live from the news articles in `signals.db` (`app/desk.py`): each named person in a
+  medium- or high-confidence wealth event becomes a lead, merged across every article that names them.
+  Clicking a lead shows the article trail, a Wikipedia/Wikidata bio with spouse, parents and children,
+  heuristic factor ratings, and the standard playbook for that kind of signal.
+- **`/classic`** — the original single-table view of every article.
+
+Things the desk does **not** invent: no value estimates (shown as "Not estimated" unless Wikidata has a net
+worth), and region/department are keyword guesses from the article text. The AI researcher needs
+`ANTHROPIC_API_KEY`. Pipeline stages are saved in your browser.
+
 ## How it works
 
 ```
@@ -32,7 +45,10 @@ without spending requests. "Pull now" simulates the next pull.
 | `app/taxonomy.py` | **The fixed tag list and wealth-event definitions — edit this to tune** |
 | `app/classifier.py` | Keyword classifier (free) and Claude classifier (optional, much better) |
 | `app/enrich.py` | Person profiles from Wikipedia/Wikidata, cached in SQLite |
-| `static/` | The single-page UI |
+| `app/desk.py` | Builds Signal Desk leads from the classified articles |
+| `app/research.py` | AI researcher brief (Claude) |
+| `static/desk.html` | Signal Desk UI (main page) |
+| `static/index.html` | Classic table UI (`/classic`) |
 
 ### Request budget (100/day on the free plan)
 

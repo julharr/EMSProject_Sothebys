@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from app import config, db, demo_data, enrich, pipeline
+from app import config, db, demo_data, desk, enrich, pipeline, research
 from app.taxonomy import EVENT_NAMES, TAG_NAMES, WEALTH_EVENTS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -18,7 +18,39 @@ _pool = ThreadPoolExecutor(max_workers=4)
 
 @app.get("/")
 def index():
+    return send_from_directory("static", "desk.html")
+
+
+@app.get("/classic")
+def classic():
     return send_from_directory("static", "index.html")
+
+
+@app.get("/api/desk")
+def desk_data():
+    return jsonify(desk.desk())
+
+
+@app.get("/api/person")
+def person():
+    name = (request.args.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+    return jsonify(enrich.profile(name, request.args.get("role")))
+
+
+@app.post("/api/research")
+def run_research():
+    body = request.get_json(silent=True) or {}
+    lead_id, signal = body.get("lead_id"), (body.get("signal") or "").strip()[:4000]
+    if not lead_id and not signal:
+        return jsonify({"error": "Pick a lead or paste a signal first."}), 400
+    try:
+        return jsonify({"text": research.brief(lead_id=lead_id, signal_text=signal or None)})
+    except research.ResearchUnavailable as e:
+        return jsonify({"error": str(e), "unavailable": not config.USE_CLAUDE}), 503
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
 
 @app.get("/api/meta")

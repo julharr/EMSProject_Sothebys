@@ -135,6 +135,46 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(params["sortBy"], "relevancy")
 
 
+class DeskTests(unittest.TestCase):
+    def setUp(self):
+        db.init()
+        with db.connect() as c:
+            c.execute("DELETE FROM pulls"); c.execute("DELETE FROM articles")
+
+    def test_articles_merge_into_one_lead_per_person(self):
+        from app import desk
+        rows = [
+            art("Billionaire collector dies at 90", "Jane Roe, a billionaire art collector, died in London."),
+            art("Heirs fight over estate", "The heirs of Jane Roe contest her will."),
+            art("Weather today", "Sunny."),
+            {**art("Museum gala", "Jane Roe donated paintings to the museum."), "url": "https://x/gala"},
+        ]
+        with mock.patch.object(newsapi_client, "fetch", return_value=[dict(r) for r in rows]):
+            pipeline.run_pull(mode="everything")
+        leads = desk.build()
+        self.assertEqual(len(leads), 1)
+        lead = leads[0]
+        self.assertEqual(lead["name"], "Jane Roe")
+        self.assertEqual(lead["side"], "seller")
+        self.assertTrue(lead["sensitive"])
+        self.assertEqual(lead["region"], "London")
+        self.assertEqual(lead["f"]["w"], 95)
+        self.assertEqual(sorted(s["type"] for s in lead["signals"]), ["death", "death", "philanthropy"])
+        self.assertTrue(all(s["sid"] == "newsapi-search" for s in lead["signals"]))
+
+    def test_unsafe_urls_dropped(self):
+        from app import desk
+        self.assertIsNone(desk._safe_url("javascript:alert(1)"))
+        self.assertEqual(desk._safe_url("https://a.b/c"), "https://a.b/c")
+
+    def test_research_endpoint_without_key(self):
+        import server
+        with mock.patch.object(config, "USE_CLAUDE", False):
+            r = server.app.test_client().post("/api/research", json={"signal": "x"})
+        self.assertEqual(r.status_code, 503)
+        self.assertTrue(r.get_json()["unavailable"])
+
+
 class EnrichTests(unittest.TestCase):
     def setUp(self):
         db.init()
