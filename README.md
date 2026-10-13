@@ -55,9 +55,10 @@ worth), and region/department are keyword guesses from the article text. The AI 
 - Each pull is exactly **one** request. At 30-minute intervals that's 48/day.
 - `DAILY_REQUEST_LIMIT` (default 95) is enforced over a rolling 24 hours, including "Pull now" clicks
   and failed requests. The header shows the meter.
-- On startup the app spends one extra request catching up: the wealth query over the last 48 hours
-  (`BACKFILL_HOURS`), so the table isn't empty on day one. It runs at most once every 20 hours, so
-  restarting the server doesn't burn requests. Turn it off with `BACKFILL_ON_START=false`.
+- On startup the app catches up on the **last 7 full days** (`BACKFILL_DAYS`): one wealth-query request
+  per day, since NewsAPI returns at most 100 articles per request. The first start costs 7 requests. After
+  that a day is only fetched again until it's complete (the free plan delays search results ~24h), so a
+  restart usually costs 0–1 requests. Turn it off with `BACKFILL_ON_START=false`.
 - `PULL_MODE=alternate` (default) switches between `/top-headlines` (general US news) and
   `/everything` with a wealth-event query (`EVERYTHING_QUERY` in `app/config.py`). The second one is
   where most signals come from; general headlines alone rarely mention private wealth.
@@ -87,6 +88,18 @@ defaults to medium & high. Things like "death toll", "debt ceiling" and "nationa
   "spouse filing for divorce"). Only new articles are sent. Rough cost on the default
   `claude-opus-5-5` is about $0.10–0.20 per pull, so roughly $3–10/day; set
   `CLAUDE_MODEL=claude-sonnet-5-5` to cut that about in half. If a call fails, that batch falls back to the rules.
+
+### Names
+
+`app/names.py` pulls people out of headlines and descriptions without an NLP model, the way wire copy
+introduces them: a role or relationship word before the name ("co-founder Adaeze Okafor", "his wife,
+Celine"), an honorific ("Sir Nigel"), the surname used again ("Whitmore, who built…"), or an age or death
+right after it. Known companies and places are masked, and words like "Resorts", "Beach" or "Exchange"
+break a name, so "Goldman Sachs" or "Palm Beach" never become people. Title-Case headlines are only
+mined for names the description confirms. `tests/name_fixtures.py` holds the test headlines; on the set
+written after the extractor (scored before tuning) it found 13 of 15 people with 1 false positive. Lone
+names with no cue ("Jane Roe donated…") are skipped on purpose. With `ANTHROPIC_API_KEY` set, Claude
+extracts names instead and lists the principal first.
 
 ### People profiles
 

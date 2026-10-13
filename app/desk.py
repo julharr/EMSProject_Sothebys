@@ -114,6 +114,7 @@ def _article_rows():
 def _signal(a, sig_type):
     return {
         "d": (a.get("published_at") or a.get("fetched_at") or "")[:10],
+        "ts": a.get("published_at") or a.get("fetched_at") or "",
         "type": sig_type,
         "title": a["title"],
         "src": a.get("source") or "News report",
@@ -146,18 +147,20 @@ def build():
         lead["articles"].append(a)
         lead["signals"].append(_signal(a, sig_type))
 
-    # Pass 2: art/philanthropy coverage of someone who is already a lead adds affinity evidence.
+    # Pass 2: art/philanthropy coverage that names someone already on the desk adds affinity evidence.
+    # Match the lead's full name in the text directly, so it doesn't depend on name extraction.
     for a in articles:
         if a.get("event_type") or not ({"Art & Collectibles", "Philanthropy"} & set(a["tags"])):
             continue
-        for p in a["people"]:
-            lead = leads.get(name_key(p["name"]))
-            if lead and all(s["article_id"] != a["id"] for s in lead["signals"]):
+        text = f"{a['title']} {a.get('description') or ''}"
+        for lead in leads.values():
+            if re.search(r"\b" + re.escape(lead["name"]) + r"\b", text) and \
+                    all(s["article_id"] != a["id"] for s in lead["signals"]):
                 lead["articles"].append(a)
                 lead["signals"].append(_signal(a, "philanthropy"))
 
     out = [_finish(l) for l in leads.values()]
-    out.sort(key=lambda l: max(s["d"] for s in l["signals"]), reverse=True)
+    out.sort(key=lambda l: max(s["ts"] for s in l["signals"]), reverse=True)
     return out
 
 
@@ -195,7 +198,7 @@ def _finish(l):
         "f": {"s": strength, "w": wealth, "a": affinity, "t": timing},
         "status": "new",
         "sensitive": t in SENSITIVE_TYPES,
-        "signals": sorted(l["signals"], key=lambda s: s["d"]),
+        "signals": sorted(l["signals"], key=lambda s: s["ts"]),
         "note": summary,
         "rationale": latest.get("rationale"),
         "timing": timing_txt,

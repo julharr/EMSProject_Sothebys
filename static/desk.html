@@ -355,7 +355,7 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
     </div>
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th id="thDate" aria-sort="descending"><button class="sort-btn" data-sort="date" title="Sort by date">Date<span class="sort-ind" aria-hidden="true"></span></button></th><th>Signal</th><th>Event</th><th>Lead</th><th id="thScore" style="text-align:right" aria-sort="none"><button class="sort-btn" data-sort="score" title="Sort by score">Score<span class="sort-ind" aria-hidden="true"></span></button></th></tr></thead>
+        <thead><tr><th id="thDate" aria-sort="descending"><button class="sort-btn" data-sort="date" title="Sort by publish time">Published<span class="sort-ind" aria-hidden="true"></span></button></th><th>Signal</th><th>Event</th><th>Lead</th><th id="thScore" style="text-align:right" aria-sort="none"><button class="sort-btn" data-sort="score" title="Sort by score">Score<span class="sort-ind" aria-hidden="true"></span></button></th></tr></thead>
         <tbody id="feedBody"></tbody>
       </table>
     </div>
@@ -531,7 +531,8 @@ const srcLink = sg => { const url = sg.url || (srcById(sg.sid)||{}).url;
              : `<span>${esc(sg.src)}</span> <span class="no-db">(no public database; verify against the original article)</span>`; };
 const valLabel = l => l.side==="seller"?"est. consignment":"est. buying capacity";
 const primaryType = l => { const v=vis(l).length?vis(l):l.signals; const trig=v.filter(s=>s.type!=="philanthropy"); return (trig.length?trig:v).slice().sort((a,b)=>b.d.localeCompare(a.d))[0].type; };
-const allSignals = () => LEADS.flatMap(l=>vis(l).map(s=>({...s,lead:l}))).sort((a,b)=>b.d.localeCompare(a.d));
+const tsOf = s => s.ts || s.d;
+const allSignals = () => LEADS.flatMap(l=>vis(l).map(s=>({...s,lead:l}))).sort((a,b)=>tsOf(b).localeCompare(tsOf(a)));
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),2400); }
 
 /* ---------- Navigation ---------- */
@@ -592,13 +593,13 @@ function renderFeed(){
   const rows=allSignals().filter(s=>(feedType==="all"||s.type===feedType)&&(side==="all"||s.lead.side===side)&&(reg==="all"||s.lead.region===reg)
     &&(!q||(s.title+" "+s.lead.name+" "+s.lead.role+" "+s.lead.region+" "+s.src).toLowerCase().includes(q)));
   const sign = feedSort.dir==="desc"?-1:1;
-  rows.sort((a,b)=> feedSort.key==="score" ? (sign*(score(a.lead)-score(b.lead)) || b.d.localeCompare(a.d)) : sign*a.d.localeCompare(b.d));
+  rows.sort((a,b)=> feedSort.key==="score" ? (sign*(score(a.lead)-score(b.lead)) || tsOf(b).localeCompare(tsOf(a))) : sign*tsOf(a).localeCompare(tsOf(b)));
   [["date","#thDate"],["score","#thScore"]].forEach(([k,sel])=>{ const th=$(sel), on=feedSort.key===k;
     th.setAttribute("aria-sort", on?(feedSort.dir==="desc"?"descending":"ascending"):"none");
     th.querySelector(".sort-ind").textContent = on?(feedSort.dir==="desc"?" ↓":" ↑"):" ↕";
     th.classList.toggle("sorted", on); });
   $("#feedBody").innerHTML = rows.length? rows.map(s=>`<tr data-lead="${s.lead.id}" tabindex="0">
-    <td class="d num">${fmtDate(s.d)}</td><td>${chip(s.type)}</td>
+    <td class="d num">${fmtDate(s.d)}${s.ts&&s.ts.length>10?`<div class="t-src">${new Date(s.ts).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}</div>`:""}</td><td>${chip(s.type)}</td>
     <td class="t-title">${esc(s.title)}<div class="t-src">${esc(s.src)}</div></td>
     <td><b style="font-weight:600">${esc(s.lead.name)}</b><div style="margin-top:3px">${sidePill(s.lead.side)}</div></td>
     <td style="text-align:right;font-family:var(--serif);font-size:18px" class="num">${score(s.lead)}</td></tr>`).join("")
@@ -819,6 +820,8 @@ async function loadDesk(first){
   try{
     const [dk, st] = await Promise.all([fetch("/api/desk").then(r=>r.json()), fetch("/api/status").then(r=>r.json())]);
     const before = new Set(LEADS_DATA.map(l=>l.id));
+    /* publish dates in the viewer's own time zone */
+    dk.leads.forEach(l=>l.signals.forEach(s=>{ if(s.ts && s.ts.length>10){ const t=new Date(s.ts); if(!isNaN(t)) s.d=isoDay(t); } }));
     LEADS_DATA = dk.leads; DEFAULT_SOURCES = dk.sources; STATS = dk.stats; STATUS = st; TODAY = new Date();
     applyStoredStatus(); loadSources(); initRegions();
     if(first){ refreshLeads(); renderSources(); renderResearchOptions(); renderWeights(); } else refreshAll(false);

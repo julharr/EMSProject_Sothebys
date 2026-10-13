@@ -115,6 +115,10 @@ def explain_config():
 def bootstrap():
     explain_config()
     db.init()
+    from app.classifier import extract_people
+    fixed = db.refresh_rule_people(extract_people)
+    if fixed:
+        logging.info("Re-read names in %d stored articles with the current name extractor", fixed)
     if config.DEMO_MODE:
         demo_data.seed_profiles()
         loaded = db.pull_count()

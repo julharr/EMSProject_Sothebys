@@ -32,7 +32,7 @@
     if (!initial) rows.forEach((a) => state.newIds.add(a.id));
     const ids = new Set(state.articles.map((a) => a.id));
     state.articles = rows.filter((a) => !ids.has(a.id)).concat(state.articles);
-    state.articles.sort((a, b) => (b.fetched_at.localeCompare(a.fetched_at)) || (b.published_at || "").localeCompare(a.published_at || ""));
+    state.articles.sort((a, b) => (b.published_at || b.fetched_at).localeCompare(a.published_at || a.fetched_at));
     state.maxId = Math.max(state.maxId, ...rows.map((a) => a.id));
     return rows.length;
   }
@@ -134,14 +134,15 @@
     let lastPull = null;
     const html = [];
     for (const a of rows) {
-      if (a.pull_id !== lastPull) {
-        lastPull = a.pull_id;
-        const inPull = rows.filter((r) => r.pull_id === a.pull_id).length;
-        html.push(`<tr class="pull-divider"><td colspan="5">Pull · ${fmtDate(a.fetched_at)} ${fmtTime(a.fetched_at)} · ${inPull} ${inPull === 1 ? "story" : "stories"}</td></tr>`);
+      const day = new Date(a.published_at || a.fetched_at).toDateString();
+      if (day !== lastPull) {
+        lastPull = day;
+        const inDay = rows.filter((r) => new Date(r.published_at || r.fetched_at).toDateString() === day).length;
+        html.push(`<tr class="pull-divider"><td colspan="5">Published ${fmtDate(a.published_at || a.fetched_at)} · ${inDay} ${inDay === 1 ? "story" : "stories"}</td></tr>`);
       }
       const isNew = state.newIds.has(a.id);
       html.push(`<tr class="story ${isNew ? "new" : ""}" data-id="${a.id}">
-        <td class="time-cell"><div class="time">${fmtTime(a.fetched_at)}<span class="ago">pub. ${ago(a.published_at)}</span></div></td>
+        <td class="time-cell"><div class="time">${fmtTime(a.published_at || a.fetched_at)}<span class="ago">${ago(a.published_at)}</span></div></td>
         <td>${a.event_type ? `<div class="signal">${badge(a.event_type)}${confMeter(a.event_confidence)}</div>` : `<span class="no-signal">—</span>`}</td>
         <td>
           <div class="headline">${isNew ? `<span class="new-badge">NEW</span>` : ""}${esc(a.title)}</div>

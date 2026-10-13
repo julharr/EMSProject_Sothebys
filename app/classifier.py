@@ -10,7 +10,7 @@ import json
 import logging
 import re
 
-from . import config
+from . import config, names
 from .taxonomy import (CONFIDENCE_LEVELS, EVENT_NAMES, TAG_NAMES, TAGS,
                        WEALTH_CONTEXT, WEALTH_EVENTS)
 
@@ -41,49 +41,8 @@ def _hits(rxs, text):
 
 # ---------------------------------------------------------------- rules engine
 
-_NAME_TOKEN = r"[A-Z][a-z]+(?:[-'’][A-Z]?[a-z]+)*|Mc[A-Z][a-z]+|Mac[A-Z][a-z]+|[A-Z]\."
-_PARTICLE = r"(?:de|da|van|von|der|del|della|di|du|la|le|al|bin|ben|dos|das)"
-_NAME_RX = re.compile(rf"\b(?:{_NAME_TOKEN})(?:\s+(?:{_PARTICLE}\s+)?(?:{_NAME_TOKEN})){{1,3}}\b")
-_NOT_NAME = set("""
-The A An And Or But In On At For To Of From With By As After Before Over Under Why How What When Where Who
-New York Los Angeles San Francisco Hong Kong United States Kingdom Wall Street White House Supreme Court
-Federal Reserve Silicon Valley Palm Beach Beverly Hills Upper East Side Middle East South North West East
-Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August
-September October November December Inc Corp Group Bank Capital Partners Holdings Fund Foundation University
-Museum Gallery Company News Times Post Journal Street Court House Senate Congress Billionaire Tycoon Heir
-Heiress Mogul Founder Chairman Chief Executive Officer CEO President Dies Divorce Sells Estate Auction Art
-Sotheby Sotheby's Christie Christie's Report Reuters Bloomberg Associated Press Breaking Exclusive Opinion
-Mr Mrs Ms Dr Sir Lady Lord Late Family Trust Co-founder Cofounder Avenue Park Square Road Boulevard
-Resorts Hotels Media Energy Airlines Motors Technologies Labs Ventures Industries Brands Studios Records
-""".split())
-
-
-def _looks_title_case(s):
-    words = [w for w in re.findall(r"[A-Za-z][A-Za-z'’]+", s) if len(w) > 3]
-    return bool(words) and sum(w[0].isupper() for w in words) / len(words) > 0.7
-
-
 def extract_people(article, limit=4):
-    sources = []
-    if article.get("title") and not _looks_title_case(article["title"]):
-        sources.append(article["title"])
-    if article.get("description"):
-        sources.append(article["description"])
-    seen, people = set(), []
-    for s in sources:
-        for m in _NAME_RX.finditer(s):
-            name = re.sub(r"['’]s$", "", m.group(0)).strip()
-            toks = name.split()
-            # trim leading non-name words ("Billionaire Jane Doe" -> "Jane Doe")
-            while toks and toks[0] in _NOT_NAME:
-                toks = toks[1:]
-            if len(toks) < 2 or any(t in _NOT_NAME for t in toks):
-                continue
-            name = " ".join(toks)
-            if name.lower() not in seen:
-                seen.add(name.lower())
-                people.append({"name": name, "role": None})
-    return people[:limit]
+    return names.extract(article.get("title"), article.get("description"), limit=limit)
 
 
 def classify_rules(article):
@@ -147,9 +106,13 @@ only if a founder/owner/family is likely cashing out.
 "low" when speculative. Use "low" with event_type "None".
 - rationale: one or two sentences on why this matters to an auction house client team (or why not). \
 Do not invent facts beyond the headline and description.
-- people: the key named individuals in the story (max 4), each with name (full name as written) and role \
-(a short phrase such as "deceased", "spouse filing for divorce", "heir", "founder selling stake"). \
-Only real named people that appear in the text; empty list if none."""
+- people: the key named individuals in the story (max 4). List the principal first: the person whose wealth or \
+assets are affected. Each has name and role. The name is the person's full name exactly as written in the text, \
+without titles or descriptors (write "Nigel Ashcombe", not "Sir Nigel Ashcombe" or "billionaire Nigel Ashcombe"); \
+if the text gives only a surname for someone named in full elsewhere, use the full name. Never list companies, \
+funds, brands, buildings or places, even when they carry a family name ("Whitmore Capital" is not a person). \
+The role is a short phrase such as "deceased", "spouse filing for divorce", "heir", "founder selling stake". \
+Empty list if no individual is named."""
 
 _SCHEMA = {
     "type": "object",

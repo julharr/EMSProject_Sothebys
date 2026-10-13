@@ -103,6 +103,12 @@ def last_regular_mode():
         return row[0] if row else None
 
 
+def last_pull_of_mode(mode):
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM pulls WHERE mode=? ORDER BY id DESC LIMIT 1", (mode,)).fetchone()
+        return dict(row) if row else None
+
+
 def hours_since_mode(mode):
     with connect() as conn:
         row = conn.execute("SELECT MAX(started_at) FROM pulls WHERE mode=?", (mode,)).fetchone()
@@ -158,7 +164,7 @@ def _article_row(row):
 def list_articles(since_id=0, limit=1000):
     with connect() as conn:
         rows = conn.execute(
-            "SELECT * FROM articles WHERE id > ? ORDER BY fetched_at DESC, published_at DESC LIMIT ?",
+            "SELECT * FROM articles WHERE id > ? ORDER BY published_at DESC, id DESC LIMIT ?",
             (since_id, limit),
         ).fetchall()
         return [_article_row(r) for r in rows]
@@ -168,6 +174,19 @@ def get_article(article_id):
     with connect() as conn:
         row = conn.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchone()
         return _article_row(row) if row else None
+
+
+def refresh_rule_people(extract):
+    """Re-run name extraction on keyword-classified articles (cheap, local); returns how many changed."""
+    changed = 0
+    with _lock, connect() as conn:
+        rows = conn.execute("SELECT id, title, description, people FROM articles WHERE classifier='rules'").fetchall()
+        for r in rows:
+            new = json.dumps(extract({"title": r["title"], "description": r["description"]}))
+            if new != r["people"]:
+                conn.execute("UPDATE articles SET people=? WHERE id=?", (new, r["id"]))
+                changed += 1
+    return changed
 
 
 # ---------- people cache ----------

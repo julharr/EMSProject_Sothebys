@@ -32,11 +32,10 @@ DAILY_REQUEST_LIMIT = int(os.getenv("DAILY_REQUEST_LIMIT", "95"))
 PULL_MODE = os.getenv("PULL_MODE", "alternate")  # top | everything | alternate
 NEWSAPI_COUNTRY = os.getenv("NEWSAPI_COUNTRY", "us")
 PORT = int(os.getenv("PORT", "5050"))
-# On startup, spend one request catching up on the last day of wealth stories
-# (skipped if a catch-up already ran within the last 20 hours).
+# On startup, catch up on the last BACKFILL_DAYS full days of wealth stories: one request per day
+# (NewsAPI returns at most 100 articles per request). A day is fetched again only until it's complete.
 BACKFILL_ON_START = os.getenv("BACKFILL_ON_START", "true").lower() not in ("0", "false", "no")
-# 48h because the free NewsAPI plan delays /everything results by about 24h.
-BACKFILL_HOURS = int(os.getenv("BACKFILL_HOURS", "48"))
+BACKFILL_DAYS = int(os.getenv("BACKFILL_DAYS", "7"))
 DB_PATH = Path(os.getenv("DB_PATH", ROOT / "signals.db"))
 
 DEMO_MODE = not NEWSAPI_KEY

@@ -83,17 +83,38 @@ def _loop():
         # A failed pull is still recorded, so the next attempt waits a full interval.
 
 
+def backfill_days(now=None):
+    """The full UTC days to catch up on, oldest first, skipping any already fetched completely."""
+    now = now or datetime.now(timezone.utc)
+    due = []
+    for back in range(config.BACKFILL_DAYS, 0, -1):
+        day = (now - timedelta(days=back)).date()
+        last = db.last_pull_of_mode(f"backfill:{day}")
+        if last and last["status"] == "ok":
+            started = datetime.fromisoformat(last["started_at"])
+            day_end = datetime(day.year, day.month, day.day, tzinfo=timezone.utc) + timedelta(days=1)
+            # The free plan delays search results ~24h, so a day is only complete once fetched 24h after it ended.
+            if started >= day_end + timedelta(hours=24) or now - started < timedelta(hours=20):
+                continue
+        due.append(day)
+    return due
+
+
 def backfill_if_needed():
-    """One request on startup for the last day's wealth stories, at most once per 20h."""
+    """On startup, fetch each missing day of the last week: one request per day."""
     if config.DEMO_MODE or not config.BACKFILL_ON_START:
-        return None
-    since = db.hours_since_mode("backfill")
-    if since is not None and since < 20:
-        log.info("Catch-up skipped: last one ran %.1fh ago", since)
-        return None
-    result = run_pull(mode="backfill")
-    log.info("Catch-up on the last %dh: %s", config.BACKFILL_HOURS, result)
-    return result
+        return []
+    days = backfill_days()
+    if not days:
+        log.info("Catch-up: the last %d days are already loaded", config.BACKFILL_DAYS)
+    results = []
+    for day in days:
+        result = run_pull(mode=f"backfill:{day}")
+        log.info("Catch-up for %s: %s", day, result)
+        results.append(result)
+        if result.get("status") in ("quota", "busy"):
+            break
+    return results
 
 
 def _start():

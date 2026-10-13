@@ -117,21 +117,40 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([c.args[0] for c in f.call_args_list], ["top", "everything"])
 
 
-    def test_backfill_runs_once_then_skips_and_keeps_alternation(self):
+    def test_backfill_fetches_each_of_last_7_days_once_then_skips(self):
         with mock.patch.object(config, "DEMO_MODE", False), \
              mock.patch.object(newsapi_client, "fetch", return_value=[]) as f:
-            self.assertEqual(pipeline.backfill_if_needed()["mode"], "backfill")
-            self.assertIsNone(pipeline.backfill_if_needed())  # within 20h -> skipped
+            first = pipeline.backfill_if_needed()
+            again = pipeline.backfill_if_needed()   # within 20h -> nothing re-fetched
             pipeline.run_pull()
-        self.assertEqual([c.args[0] for c in f.call_args_list], ["backfill", "top"])
+        modes = [c.args[0] for c in f.call_args_list]
+        self.assertEqual(len(first), 7)
+        self.assertEqual(again, [])
+        self.assertTrue(all(m.startswith("backfill:") for m in modes[:7]))
+        self.assertEqual(modes[:7], sorted(modes[:7]))           # oldest day first
+        self.assertEqual(modes[7], "top")                        # alternation unaffected
+        self.assertEqual(db.requests_last_24h(), 8)
 
-    def test_backfill_request_has_time_window(self):
+    def test_backfill_day_is_complete_once_fetched_a_day_after_it_ended(self):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        old_day = (now - timedelta(days=5)).date()
+        recent_day = (now - timedelta(days=1)).date()
+        long_ago = (now - timedelta(hours=21)).isoformat(timespec="seconds")
+        with db.connect() as c:
+            for day in (old_day, recent_day):  # both fetched 21h ago
+                c.execute("INSERT INTO pulls (started_at, mode, status) VALUES (?, ?, 'ok')", (long_ago, f"backfill:{day}"))
+        due = pipeline.backfill_days(now)
+        self.assertNotIn(old_day, due)      # fetched well after it ended -> complete
+        self.assertIn(recent_day, due)      # fetched before the ~24h delay passed -> refetch
+
+    def test_backfill_request_is_one_utc_day(self):
         resp = mock.Mock(status_code=200, headers={"content-type": "application/json"},
                          json=lambda: {"status": "ok", "articles": []})
         with mock.patch("requests.get", return_value=resp) as g:
-            newsapi_client.fetch("backfill")
+            newsapi_client.fetch("backfill:2026-10-06")
         params = g.call_args.kwargs["params"]
-        self.assertIn("from", params)
+        self.assertEqual((params["from"], params["to"]), ("2026-10-06T00:00:00", "2026-10-06T23:59:59"))
         self.assertEqual(params["sortBy"], "relevancy")
 
 
