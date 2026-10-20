@@ -23,6 +23,13 @@ without spending requests. "Pull now" simulates the next pull.
   Clicking a lead shows the article trail, a Wikipedia/Wikidata bio with spouse, parents and children,
   heuristic factor ratings, and the standard playbook for that kind of signal.
 - **`/classic`** — the original single-table view of every article.
+- **`/concept`** — *Concept B*, a separate design exploration with **dummy data only**
+  (`static/concept/index.html`, no server data; it also opens by double-clicking the file). Stories split into
+  consignment signals (item, person, summary — research stops) and buy signals, which go through a Profile
+  Builder (Wikipedia, social media, museum APIs, Forbes, then Claude) that writes collecting tags gated by a
+  net-worth bar per tier ($500M+ blue-chip fine art, $50M+ fine art and major collecting, $5M+ luxury), plus
+  wealth and affiliation markers. Tabs: Overview, Signal feed (bulk-select rows), Profile builder, Export
+  table (CSV with bio, latest story, past stories, tags), Methods & data. Nothing in it is real.
 
 Things the desk does **not** invent: no value estimates (shown as "Not estimated" unless Wikidata has a net
 worth), and region/department are keyword guesses from the article text. The AI researcher needs

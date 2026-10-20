@@ -21,6 +21,12 @@ def index():
     return send_from_directory("static", "desk.html")
 
 
+@app.get("/concept")
+def concept():
+    """Concept B: consignment vs buy signals and the Profile Builder. Dummy data only."""
+    return send_from_directory("static/concept", "index.html")
+
+
 @app.get("/classic")
 def classic():
     return send_from_directory("static", "index.html")
