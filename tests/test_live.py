@@ -90,3 +90,29 @@ class LiveTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HarvardTests(unittest.TestCase):
+    def setUp(self):
+        db.init()
+
+    def test_skipped_without_key(self):
+        with mock.patch.object(config, "HARVARD_API_KEY", ""), mock.patch.object(museums, "_get") as g:
+            self.assertEqual(museums.harvard("Jane Roe")["credits"], [])
+            g.assert_not_called()
+
+    def test_credit_lines_and_departments(self):
+        resp = {"records": [
+            {"title": "Bowl", "creditline": "Gift of Jane Roe", "department": "Department of Asian Art", "url": "u1"},
+            {"title": "Print", "creditline": "Promised gift of Jane Roe", "division": "European and American Art",
+             "classification": "Prints", "url": "u2"},
+            {"title": "Other", "creditline": "Gift of Someone Else", "department": "Department of Asian Art", "url": "u3"}]}
+        with mock.patch.object(config, "HARVARD_API_KEY", "k"), mock.patch.object(museums, "_get", return_value=resp) as g:
+            got = museums.harvard("Jane Roe")["credits"]
+        self.assertEqual(g.call_args.kwargs["q"], 'creditline:"Jane Roe"')
+        self.assertEqual([c["title"] for c in got], ["Bowl", "Print"])
+        self.assertEqual([c["kind"] for c in got], ["donor", "lender"])
+        self.assertEqual([museums.category_for(c["department"]) for c in got], ["asian", "prints"])
+        prof = live.build_tags("Jane Roe", {"found": False}, {"credits": []}, {"credits": []}, [], {"credits": got})
+        self.assertIn(["asian", ["harvard"]], [t[:2] for t in prof["tags"]])
+        self.assertIn("Museum lender (Harvard Art Museums)", [t[1] for t in prof["tags"] if t[0] == "aff"])

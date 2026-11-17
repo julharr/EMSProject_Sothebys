@@ -373,7 +373,7 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
   <!-- PROFILE BUILDER -->
   <section class="page" id="page-builder">
     <h1 class="pg">Profile builder</h1>
-    <p class="lede">Buy signals continue here. The builder looks a person up on Wikipedia, Wikidata and two museum collections (The Met and Cleveland), then keyword rules turn the findings into collecting, wealth and affiliation tags. Free sources only, no AI.</p>
+    <p class="lede">Buy signals continue here. The builder looks a person up on Wikipedia, Wikidata and three museum collections (The Met, Cleveland and Harvard), then keyword rules turn the findings into collecting, wealth and affiliation tags. Free sources only, no AI.</p>
     <div class="pb-grid">
       <div class="panel">
         <label class="fl" for="pbPick">Person from a story</label>
@@ -475,7 +475,7 @@ const CATS = {
 };
 const MARKER_EXAMPLES = [
   ["wealth","Net worth $___ (Wikidata)"],["wealth","Described as a billionaire"],["wealth","Recent liquidity: IPO / sale / payout"],
-  ["aff","Museum donor (The Met)"],["aff","Museum lender (Cleveland)"],["aff","Museum board"],["aff","Trustee"],
+  ["aff","Museum donor (The Met)"],["aff","Museum lender (Harvard Art Museums)"],["aff","Museum board"],["aff","Trustee"],
   ["aff","Met Gala attendee"],["aff","Philanthropist"],["aff","Giving Pledge signatory"],["aff","Art collector"],["aff","Watch collector"],["aff","Wine collector"]
 ];
 const SOURCES = [
@@ -483,6 +483,7 @@ const SOURCES = [
   {k:"wikipedia", label:"Wikipedia and Wikidata", used:"In use", gives:"Bio, occupations, recorded net worth, family", real:"Free, no key; only notable people have pages"},
   {k:"met", label:"The Met Collection API", used:"In use", gives:"Credit lines naming the person (gifts, loans) and the departments of those works", real:"Free, no key"},
   {k:"cleveland", label:"Cleveland Museum of Art Open Access", used:"In use", gives:"Credit lines naming the person and the departments of those works", real:"Free, no key"},
+  {k:"harvard", label:"Harvard Art Museums API", used:"In use (free key)", gives:"Credit lines naming the person and the departments of those works", real:"Free key; set HARVARD_API_KEY in .env"},
   {k:"rules", label:"Keyword rules", used:"In use", gives:"Turn the findings into collecting tags and markers", real:"Runs locally; no AI"},
   {k:"social", label:"Social media API", used:"Not used (paid)", gives:"Event attendance, collecting posts", real:"X API is pay per use; Instagram cannot look up individuals"},
   {k:"forbes", label:"Forbes", used:"Not used (paid)", gives:"Net worth and rankings", real:"No public API; licensed feed needs a quote"},
@@ -763,6 +764,7 @@ const STEPS = [
   {k:"wikipedia", label:"Wikipedia and Wikidata", desc:"Bio, occupations, recorded net worth"},
   {k:"met", label:"The Met Collection API", desc:"Credit lines naming them, and the works' departments"},
   {k:"cleveland", label:"Cleveland Museum Open Access", desc:"Credit lines naming them, and the works' departments"},
+  {k:"harvard", label:"Harvard Art Museums API", desc:"Credit lines naming them, and the works' departments"},
   {k:"news", label:"The desk's stories", desc:"Everything pulled about them so far"},
   {k:"rules", label:"Keyword rules", desc:"Turn the findings into tags (no AI)"}
 ];

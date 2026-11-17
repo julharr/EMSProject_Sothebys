@@ -2,6 +2,7 @@
 
   * The Met Collection API (no key): search by name, then read each object's credit line.
   * Cleveland Museum of Art Open Access (no key): filter artworks by credit line.
+  * Harvard Art Museums API (free key, HARVARD_API_KEY): search object credit lines.
 
 A credit line that names the person ("Gift of Jane Roe", "Lent by Jane Roe") is evidence of
 museum giving or lending, and the object's department says what they collect. Results are cached
@@ -12,7 +13,7 @@ import re
 
 import requests
 
-from . import db
+from . import config, db
 from .enrich import UA, name_key
 
 log = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ log = logging.getLogger(__name__)
 MET_SEARCH = "https://collectionapi.metmuseum.org/public/collection/v1/search"
 MET_OBJECT = "https://collectionapi.metmuseum.org/public/collection/v1/objects/"
 CLEVELAND = "https://openaccess-api.clevelandart.org/api/artworks/"
+HARVARD = "https://api.harvardartmuseums.org/object"
 MAX_OBJECTS = 12
 
 # Museum department -> collecting category key (see the CATS list on the page).
@@ -27,7 +29,7 @@ DEPARTMENT_CATEGORY = [
     (r"modern and contemporary|contemporary art", "contemporary"),
     (r"modern european painting", "impmod"),
     (r"european paintings?|european painting and sculpture|robert lehman|drawings$", "oldmasters"),
-    (r"asian art|chinese|japanese|korean|indian and southeast asian", "asian"),
+    (r"asian|chinese|japanese|korean|indian and southeast asian", "asian"),
     (r"islamic", "islamic"),
     (r"africa", "african"),
     (r"art of the americas|latin american", "latam"),
@@ -101,3 +103,26 @@ def cleveland(name):
                    for r in rows if _names_person(r.get("creditline"), n)]
         return {"credits": credits}
     return _cached("cma", name, fetch)
+
+
+def harvard(name):
+    """Harvard Art Museums: objects whose credit line names the person. Skipped without a key."""
+    if not config.HARVARD_API_KEY:
+        return {"credits": [], "error": "Not set up (add HARVARD_API_KEY to .env)"}
+
+    def fetch(n):
+        data = _get(HARVARD, apikey=config.HARVARD_API_KEY, q=f'creditline:"{n}"', size=MAX_OBJECTS,
+                    fields="title,creditline,department,division,classification,url") or {}
+        credits = []
+        for r in data.get("records") or []:
+            if not _names_person(r.get("creditline"), n):
+                continue
+            # "Department of Asian Art" / division "Modern and Contemporary Art"; photos and prints by classification
+            dept = r.get("department") or r.get("division") or ""
+            cls = (r.get("classification") or "").lower()
+            if cls in ("photographs", "prints"):
+                dept = f"{dept} ({r.get('classification')})"
+            credits.append({"museum": "Harvard Art Museums", "title": r.get("title"), "department": dept,
+                            "credit": r.get("creditline"), "kind": _kind(r.get("creditline")), "url": r.get("url")})
+        return {"credits": credits}
+    return _cached("ham", name, fetch)

@@ -5,7 +5,8 @@ a consignment signal (estate, family or financial change, announced sale) or a b
 (new liquidity). Buy signals get a profile assembled from free sources:
 
   Wikipedia + Wikidata  -> bio, occupations, recorded net worth
-  The Met, Cleveland    -> credit lines naming the person, and the departments of those works
+  The Met, Cleveland,   -> credit lines naming the person, and the departments of those works
+  Harvard (free key)
   The desk's own stories -> what the news says about them
 
 Tags are written by transparent keyword rules (no AI). A background worker fetches the source
@@ -175,14 +176,14 @@ def stories_and_people():
 
 def _cached_sources(name):
     key = name_key(name)
-    return db.get_person(key), db.get_person(f"met:{key}"), db.get_person(f"cma:{key}")
+    return db.get_person(key), db.get_person(f"met:{key}"), db.get_person(f"cma:{key}"), db.get_person(f"ham:{key}")
 
 
 def profile_from_cache(name, story_texts):
-    wiki, met, cma = _cached_sources(name)
+    wiki, met, cma, ham = _cached_sources(name)
     if wiki is None:          # not looked up yet
         return None
-    return build_tags(name, wiki, met or {"credits": []}, cma or {"credits": []}, story_texts)
+    return build_tags(name, wiki, met or {"credits": []}, cma or {"credits": []}, story_texts, ham)
 
 
 def fetch_sources(name):
@@ -190,12 +191,17 @@ def fetch_sources(name):
     enrich.profile(name)
     museums.met(name)
     museums.cleveland(name)
+    museums.harvard(name)
 
 
-def build_tags(name, wiki, met, cma, story_texts):
+MUSEUM_SRC = {"The Met": "met", "Cleveland Museum of Art": "cleveland", "Harvard Art Museums": "harvard"}
+
+
+def build_tags(name, wiki, met, cma, story_texts, ham=None):
+    ham = ham or {"credits": [], "error": None if config.HARVARD_API_KEY else "Not set up (add HARVARD_API_KEY to .env)"}
     news = " ".join(story_texts)
     bio = " ".join(filter(None, [wiki.get("bio"), wiki.get("description"), " ".join(wiki.get("occupations") or [])])) if wiki.get("found") else ""
-    credits = (met.get("credits") or []) + (cma.get("credits") or [])
+    credits = (met.get("credits") or []) + (cma.get("credits") or []) + (ham.get("credits") or [])
     tags, find = [], {}
 
     # Net worth: Wikidata if recorded, else "billionaire" in the coverage, else unknown.
@@ -215,7 +221,7 @@ def build_tags(name, wiki, met, cma, story_texts):
         cat = museums.category_for(c.get("department"))
         if cat:
             by_cat.setdefault(cat, {"src": set(), "why": []})
-            by_cat[cat]["src"].add("met" if c["museum"] == "The Met" else "cleveland")
+            by_cat[cat]["src"].add(MUSEUM_SRC.get(c["museum"], "met"))
             by_cat[cat]["why"].append(f"{c['museum']}: {c.get('department')}")
     for cat, rx, why in CATEGORY_RULES:
         for src, text in (("wikipedia", bio), ("news", news)):
@@ -230,7 +236,7 @@ def build_tags(name, wiki, met, cma, story_texts):
     for kind in ("donor", "lender"):
         museums_named = sorted({c["museum"] for c in credits if c["kind"] == kind})
         for m in museums_named:
-            tags.append(["aff", f"Museum {kind} ({m})", ["met" if m == "The Met" else "cleveland"]])
+            tags.append(["aff", f"Museum {kind} ({m})", [MUSEUM_SRC.get(m, "met")]])
     seen = {t[1] for t in tags if t[0] in ("wealth", "aff")}
     for rx, label in AFFILIATION_RULES:
         for src, text in (("wikipedia", bio), ("news", news)):
@@ -245,6 +251,7 @@ def build_tags(name, wiki, met, cma, story_texts):
                          if wiki.get("found") else [wiki.get("error") or "No Wikipedia page found"])
     find["met"] = [f"{c.get('credit')} ({c.get('department')})" for c in met.get("credits") or []][:4] or [met.get("error") or "No credit lines naming them"]
     find["cleveland"] = [f"{c.get('credit')} ({c.get('department')})" for c in cma.get("credits") or []][:4] or [cma.get("error") or "No credit lines naming them"]
+    find["harvard"] = [f"{c.get('credit')} ({c.get('department')})" for c in ham.get("credits") or []][:4] or [ham.get("error") or "No credit lines naming them"]
     find["news"] = [f"{len(story_texts)} stor{'y' if len(story_texts) == 1 else 'ies'} on file"] if story_texts else ["No stories pulled for this name"]
     find["rules"] = [f"{len(tags)} tags from keyword rules (no AI)"]
 
@@ -263,7 +270,7 @@ def profile_for_name(name):
     texts = [f"{s['headline']}. {s['summary']}" for s in stories if s["person"] == pid]
     if not config.DEMO_MODE:
         fetch_sources(name)
-    prof = profile_from_cache(name, texts) or build_tags(name, {"found": False}, {"credits": []}, {"credits": []}, texts)
+    prof = profile_from_cache(name, texts) or build_tags(name, {"found": False}, {"credits": []}, {"credits": []}, texts, None)
     base = people.get(pid, {"name": name, "role": "Entered by hand", "signal": "buy"})
     return pid, {**base, **prof, "pending": False}
 

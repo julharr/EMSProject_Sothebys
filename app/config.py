@@ -43,6 +43,8 @@ DEMO_MODE = not NEWSAPI_KEY
 # even if ANTHROPIC_API_KEY is set. Set FREE_APIS_ONLY=false to allow the paid Claude features.
 FREE_APIS_ONLY = os.getenv("FREE_APIS_ONLY", "true").lower() not in ("0", "false", "no")
 USE_CLAUDE = bool(ANTHROPIC_API_KEY) and not FREE_APIS_ONLY
+# Harvard Art Museums API (free key from harvardartmuseums.org/collections/api). Optional.
+HARVARD_API_KEY = os.getenv("HARVARD_API_KEY", "").strip()
 # How many people the background profile builder looks up per pull (each is ~6 free API calls).
 PROFILES_PER_PULL = int(os.getenv("PROFILES_PER_PULL", "25"))
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")

@@ -21,8 +21,9 @@ without spending requests. "Pull now" simulates the next pull.
   Export table, Methods & data) fed by the real NewsAPI pulls, running on **free sources only**:
   - NewsAPI free developer plan for the news
   - Wikipedia and Wikidata for bios and recorded net worth
-  - The Met Collection API and the Cleveland Museum of Art Open Access API for credit lines
-    ("Gift of…", "Lent by…") and the departments of those works
+  - The Met Collection API, the Cleveland Museum of Art Open Access API and the Harvard Art Museums
+    API (free key in `HARVARD_API_KEY`) for credit lines ("Gift of…", "Lent by…") and the departments
+    of those works
 
   Tags are written by keyword rules in `app/live.py`; nothing calls Claude, X or Forbes while
   `FREE_APIS_ONLY=true` (the default). Buy-signal people are looked up in the background (about six
