@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from app import config, db, demo_data, desk, enrich, pipeline, research
+from app import config, db, demo_data, desk, enrich, live, pipeline, research
 from app.taxonomy import EVENT_NAMES, TAG_NAMES, WEALTH_EVENTS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -18,7 +18,30 @@ _pool = ThreadPoolExecutor(max_workers=4)
 
 @app.get("/")
 def index():
+    """Signal Desk, live: the concept layout fed by real pulls and free sources only."""
+    return send_from_directory("static/live", "index.html")
+
+
+@app.get("/desk")
+def desk_v1():
+    """The first Signal Desk layout (leads, scores, AI researcher)."""
     return send_from_directory("static", "desk.html")
+
+
+@app.get("/api/live")
+def live_data():
+    stories, people = live.stories_and_people()
+    return jsonify({"stories": stories, "people": people, "demo": config.DEMO_MODE,
+                    "free_only": config.FREE_APIS_ONLY, "stats": desk.stats()})
+
+
+@app.post("/api/live/profile")
+def live_profile():
+    name = ((request.get_json(silent=True) or {}).get("name") or "").strip()[:120]
+    if not name:
+        return jsonify({"error": "Enter a name first."}), 400
+    pid, prof = live.profile_for_name(name)
+    return jsonify({"id": pid, "person": prof})
 
 
 @app.get("/concept")
@@ -135,6 +158,7 @@ def bootstrap():
         logging.info("DEMO MODE — no NEWSAPI_KEY set. Data is fictional. Click 'Pull now' to simulate a pull.")
     else:
         pipeline.start_scheduler()
+        live.start_worker()
         logging.info("Live mode: pulling every %d min (classifier: %s)",
                      config.PULL_INTERVAL_MINUTES, "claude" if config.USE_CLAUDE else "rules")
 

@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Signal Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wall:#E9ECE7; --paper:#FBFBF9; --paper-2:#F3F5F1;
+  --ink:#23393A; --ink-2:#4B605D; --ink-3:#7A8985; --rule:#D3D8D1;
+  --lapis:#3D7BAE; --lapis-soft:#DCE9F3;
+  --consign:#B5683F; --consign-soft:#F4E4D9;
+  --buy:#3E7A5A; --buy-soft:#DDEDE3;
+  --t1:#6B4FA0; --t1-soft:#ECE6F5; --t2:#3D7BAE; --t2-soft:#DCE9F3; --t3:#7A8985; --t3-soft:#ECEFEB;
+  --wealth:#9A7A2E; --wealth-soft:#F3ECD8; --aff:#A0506A; --aff-soft:#F4E2E8;
+  --serif:"Spectral", Georgia, "Times New Roman", serif;
+  --sans:"Work Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --wall:#13171D; --paper:#1B2129; --paper-2:#212833; --ink:#EAEEE3; --ink-2:#B9C4BE; --ink-3:#8A9994; --rule:#2F3743;
+    --lapis:#8EC0E6; --lapis-soft:#23405A; --consign:#E5A07A; --consign-soft:#3D2A20; --buy:#86C4A0; --buy-soft:#1F3A2C;
+    --t1:#B9A2E6; --t1-soft:#2E2645; --t2:#8EC0E6; --t2-soft:#23405A; --t3:#AAB2B3; --t3-soft:#2A3038;
+    --wealth:#DDBF73; --wealth-soft:#3A321C; --aff:#E59AB2; --aff-soft:#3E2430;
+  }
+}
+:root[data-theme="dark"]{
+  --wall:#13171D; --paper:#1B2129; --paper-2:#212833; --ink:#EAEEE3; --ink-2:#B9C4BE; --ink-3:#8A9994; --rule:#2F3743;
+  --lapis:#8EC0E6; --lapis-soft:#23405A; --consign:#E5A07A; --consign-soft:#3D2A20; --buy:#86C4A0; --buy-soft:#1F3A2C;
+  --t1:#B9A2E6; --t1-soft:#2E2645; --t2:#8EC0E6; --t2-soft:#23405A; --t3:#AAB2B3; --t3-soft:#2A3038;
+  --wealth:#DDBF73; --wealth-soft:#3A321C; --aff:#E59AB2; --aff-soft:#3E2430;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--wall);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--lapis);outline-offset:2px;border-radius:3px}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--rule)}
+.top-inner{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:28px;height:60px}
+.brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+.brand b{font-family:var(--serif);font-weight:600;font-size:21px;letter-spacing:-.01em}
+.concept-pill{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--wealth);background:var(--wealth-soft);padding:2px 8px;border-radius:20px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{background:none;border:0;padding:8px 12px;font-size:14px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+.tab:hover{color:var(--ink)}
+.tab[aria-current="page"]{color:var(--ink);border-bottom-color:var(--lapis)}
+.tab .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--ink);color:var(--paper);font-size:11px;line-height:18px;text-align:center}
+.hdr-meta{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+
+main{max-width:1280px;margin:0 auto;padding:32px 24px 64px}
+section.page{display:none}
+section.page.active{display:block}
+h1.pg{font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.15;letter-spacing:-.015em;margin:0 0 6px}
+.lede{color:var(--ink-2);max-width:72ch;margin:0 0 26px}
+h2.sec{font-family:var(--serif);font-weight:500;font-size:21px;margin:0 0 14px}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:22px 24px}
+.note{font-size:12.5px;color:var(--ink-3)}
+.grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.grid-2>*{min-width:0}
+
+/* pills & tags */
+.sig{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;white-space:nowrap}
+.sig.consign{background:var(--consign-soft);color:var(--consign)}
+.sig.buy{background:var(--buy-soft);color:var(--buy)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:2px 9px;border-radius:3px;white-space:nowrap;border:1px solid transparent}
+.tag.t1{background:var(--t1-soft);color:var(--t1)}
+.tag.t2{background:var(--t2-soft);color:var(--t2)}
+.tag.t3{background:var(--t3-soft);color:var(--t3)}
+.tag.wealth{background:var(--wealth-soft);color:var(--wealth)}
+.tag.aff{background:var(--aff-soft);color:var(--aff)}
+.tag.item{background:var(--paper-2);color:var(--ink-2);border-color:var(--rule);white-space:normal}
+.tag.unv{background:none;border:1px dashed currentColor}
+.tag.below{background:none;color:var(--ink-3);border:1px dashed var(--rule);text-decoration:line-through;text-decoration-color:var(--ink-3)}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.more{font-size:12px;color:var(--ink-3);align-self:center}
+
+/* overview */
+.brief{font-family:var(--serif);font-size:29px;line-height:1.28;max-width:34ch;margin:0 0 26px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);margin-bottom:30px}
+.kpis div{padding:14px 14px 14px 0}
+.kpis div+div{padding-left:14px;border-left:1px solid var(--rule)}
+.kpis strong{display:block;font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.1}
+.kpis small{color:var(--ink-3);font-size:12.5px}
+.flow{display:grid;grid-template-columns:1fr 24px 1fr 24px 1.25fr;align-items:center;gap:0;margin-bottom:30px}
+.flow .node{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:14px 16px;height:100%}
+.flow .node b{display:block;font-family:var(--serif);font-weight:500;font-size:17px}
+.flow .node span{font-size:13px;color:var(--ink-2)}
+.flow .arrow{text-align:center;color:var(--ink-3);font-size:18px}
+.flow .split{display:flex;flex-direction:column;gap:10px}
+.flow .split .node{border-left:3px solid var(--c)}
+.mini{list-style:none;margin:0;padding:0}
+.mini li{display:grid;grid-template-columns:1fr auto;gap:12px;padding:11px 0;border-top:1px solid var(--rule);cursor:pointer}
+.mini li:first-child{border-top:0}
+.mini li:hover .m-name{color:var(--lapis)}
+.m-name{font-weight:600}
+.m-sub{font-size:13px;color:var(--ink-3);margin-top:2px}
+.m-right{text-align:right;font-size:13.5px;white-space:nowrap}
+.hbars{display:flex;flex-direction:column;gap:8px}
+.hbar{display:grid;grid-template-columns:190px 1fr 28px;gap:10px;align-items:center;font-size:13.5px}
+.hbar .track{height:9px;background:var(--paper-2);border-radius:2px;overflow:hidden}
+.hbar .fill{height:100%}
+.hbar .v{text-align:right;color:var(--ink-2)}
+button.hbar{background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:3px}
+button.hbar:hover{background:var(--paper-2)}
+button.hbar:hover .lbl{color:var(--lapis);text-decoration:underline;text-underline-offset:3px}
+
+/* feed */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:20px;overflow:hidden;background:var(--paper)}
+.seg button{background:none;border:0;padding:6px 14px;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.search{flex:1;min-width:200px;max-width:320px;border:1px solid var(--rule);background:var(--paper);border-radius:4px;padding:7px 12px;font-size:14px}
+select.sel{border:1px solid var(--rule);background:var(--paper);border-radius:4px;padding:7px 10px;font-size:14px}
+.bulkbar{display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--paper);border-radius:4px;padding:9px 14px;margin-bottom:12px;font-size:14px}
+.bulkbar[hidden]{display:none}
+.bulkbar .btn{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+.bulkbar .btn.ghost{background:transparent;color:var(--paper);border-color:rgba(255,255,255,.35)}
+.tbl-wrap{overflow-x:auto;background:var(--paper);border:1px solid var(--rule);border-radius:4px}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th{text-align:left;font-size:12.5px;font-weight:600;color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--ink);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top;font-size:14px}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover td{background:var(--paper-2)}
+tbody tr.row.picked td{background:var(--paper-2)}
+tbody tr.row.picked td:first-child{box-shadow:inset 3px 0 0 var(--lapis)}
+tr.grp td{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--paper-2);padding:7px 14px}
+td.chk,th.chk{width:40px;padding-right:0}
+td.chk input,th.chk input{width:16px;height:16px;cursor:pointer;accent-color:var(--lapis)}
+td.when{white-space:nowrap;color:var(--ink-2);font-size:13px}
+.ev-title{font-weight:500;max-width:46ch}
+.ev-sub{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.p-name{font-weight:600}
+.in-export{font-size:11.5px;color:var(--lapis);font-weight:600}
+.empty{padding:40px;text-align:center;color:var(--ink-3)}
+
+/* buttons */
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:8px 16px;border-radius:3px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover{border-color:var(--ink);opacity:1}
+.btn.sm{padding:4px 10px;font-size:12.5px}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(15,20,30,.42);z-index:90;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .18s}
+.scrim.on{opacity:1;pointer-events:auto}
+.modal{background:var(--paper);border-radius:6px;width:min(760px,100%);max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);transform:translateY(10px);transition:transform .2s;position:relative}
+.scrim.on .modal{transform:none}
+.m-head{padding:26px 30px 18px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--paper);z-index:1}
+.m-close{position:absolute;top:14px;right:16px;background:none;border:0;font-size:26px;line-height:1;cursor:pointer;color:var(--ink-3);padding:6px}
+.m-kicker{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:8px;font-size:13px;color:var(--ink-3)}
+.m-title{font-family:var(--serif);font-weight:500;font-size:31px;line-height:1.1;margin:0;padding-right:36px}
+.m-role{color:var(--ink-2);margin:4px 0 0}
+.m-body{padding:6px 30px 26px}
+.m-body h4{font-family:var(--serif);font-weight:500;font-size:18px;margin:22px 0 8px}
+.story-now{background:var(--paper-2);border-left:3px solid var(--c,var(--ink));padding:14px 16px;border-radius:0 3px 3px 0}
+.story-now .h{font-weight:600}
+.story-now p{margin:6px 0 0;font-size:14.5px}
+.prev{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule);margin-left:5px}
+.prev li{position:relative;padding:0 0 14px 18px}
+.prev li::before{content:"";position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--c,var(--ink-3))}
+.prev .d{font-size:12.5px;color:var(--ink-3)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;font-size:14px;margin-top:10px}
+.facts span{color:var(--ink-3)}
+.m-actions{display:flex;flex-wrap:wrap;gap:10px;padding:16px 30px 24px;border-top:1px solid var(--rule)}
+.stop-note{font-size:13.5px;color:var(--ink-2);background:var(--consign-soft);padding:12px 14px;border-radius:3px}
+
+/* profile builder */
+.pb-grid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:24px;align-items:start}
+label.fl{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
+.pb-grid select,.pb-grid input[type=text]{width:100%;border:1px solid var(--rule);background:var(--paper);border-radius:4px;padding:9px 10px;font-size:14px}
+.or{font-size:12.5px;color:var(--ink-3);margin:14px 0}
+.sources{display:flex;flex-direction:column;gap:8px;margin-top:22px}
+.src{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font-size:13.5px;padding:8px 0;border-top:1px solid var(--rule)}
+.src:first-child{border-top:0}
+.src .dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--rule);margin-top:3px;transition:all .2s}
+.src.run .dot{border-color:var(--lapis);border-top-color:transparent;animation:spin .7s linear infinite}
+.src.done .dot{background:var(--buy);border-color:var(--buy)}
+.src b{font-weight:600}
+.src small{display:block;color:var(--ink-3);font-size:12.5px}
+.src ul{margin:6px 0 0;padding-left:16px;color:var(--ink-2);font-size:13px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prof-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.prof-name{font-family:var(--serif);font-weight:500;font-size:32px;line-height:1.1;margin:0}
+.prof-role{color:var(--ink-2);margin:4px 0 0}
+.nw{margin:22px 0 8px}
+.nw-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.nw-top b{font-family:var(--serif);font-size:26px;font-weight:500}
+.nw-bar{position:relative;height:12px;background:linear-gradient(90deg,var(--paper-2) 0 17.5%,var(--t3-soft) 17.5% 42.5%,var(--t2-soft) 42.5% 67.5%,var(--t1-soft) 67.5% 100%);border:1px solid var(--rule);border-radius:6px}
+.nw-mark{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--ink-3)}
+.nw-mark span{position:absolute;top:22px;transform:translateX(-50%);font-size:11px;color:var(--ink-3);white-space:nowrap}
+.nw-pin{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--ink);border:3px solid var(--paper);box-shadow:0 0 0 1px var(--ink)}
+.nw-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px;font-size:12.5px;color:var(--ink-2)}
+.nw-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tag-group{margin-top:20px}
+.tag-group h5{font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px}
+.tag-list{display:flex;flex-direction:column;gap:6px}
+.tag-row{display:grid;grid-template-columns:minmax(0,260px) 1fr;gap:12px;align-items:center;font-size:13px}
+.tag-row .why{color:var(--ink-3)}
+.srcchip{display:inline-block;font-size:11px;padding:0 6px;border-radius:3px;border:1px solid var(--rule);color:var(--ink-2);margin-right:4px}
+.claude-note{font-family:var(--serif);font-size:16px;line-height:1.6;margin:18px 0 0;padding:14px 16px;background:var(--paper-2);border-radius:3px}
+.placeholder{color:var(--ink-3);padding:30px 0}
+
+/* pipeline */
+.board{display:grid;grid-template-columns:repeat(3,minmax(240px,1fr));gap:16px;overflow-x:auto;padding-bottom:6px}
+.col{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:14px;min-height:320px}
+.col h3{font-size:14px;font-weight:600;margin:0 0 4px;display:flex;justify-content:space-between;align-items:baseline}
+.col h3 .num{color:var(--ink-3);font-weight:500}
+.col p.hint{font-size:12.5px;color:var(--ink-3);margin:0 0 12px}
+.col .empty-col{font-size:13px;color:var(--ink-3);border:1px dashed var(--rule);border-radius:3px;padding:14px;text-align:center}
+.pcard{background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:12px;margin-bottom:10px}
+.pcard .c-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.pcard .c-name{font-weight:600;font-size:14px;cursor:pointer;background:none;border:0;padding:0;text-align:left;font-family:inherit;color:inherit}
+.pcard .c-name:hover{color:var(--lapis)}
+.pcard .c-stories{list-style:none;margin:8px 0;padding:0 0 0 10px;border-left:2px solid var(--rule)}
+.pcard .c-stories li{font-size:12.5px;color:var(--ink-2);padding:3px 0}
+.pcard .c-stories .d{color:var(--ink-3)}
+.pcard .c-count{font-size:11.5px;color:var(--ink-3);margin-top:6px}
+.pcard .c-act{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.track-btn{border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:500;cursor:pointer;margin-top:6px;white-space:nowrap}
+.track-btn:hover{border-color:var(--lapis);color:var(--lapis)}
+.track-btn.on{background:var(--lapis-soft);border-color:var(--lapis);color:var(--lapis)}
+
+/* export */
+.exp-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+td.small{font-size:13px;color:var(--ink-2);max-width:40ch}
+
+/* method */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--ink);margin-bottom:30px}
+.step{padding:14px 16px 14px 0}
+.step+.step{padding-left:16px;border-left:1px solid var(--rule)}
+.step b{font-family:var(--serif);font-weight:500;font-size:19px;display:block;margin-bottom:4px}
+.step b em{font-style:normal;color:var(--ink-3);margin-right:6px}
+.step p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.tier-row{display:grid;grid-template-columns:200px 110px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--rule);align-items:start;font-size:14px}
+.tier-row:first-child{border-top:0}
+.ethics{columns:2;column-gap:40px;font-size:14.5px;color:var(--ink-2)}
+.ethics p{margin:0 0 12px;break-inside:avoid}
+.ethics b{color:var(--ink)}
+a.lnk{color:var(--lapis);text-underline-offset:3px}
+
+footer{max-width:1280px;margin:0 auto;padding:22px 24px 40px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink-3);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer button{background:none;border:0;color:var(--ink-3);text-decoration:underline;cursor:pointer;font-size:12.5px;padding:0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:3px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:all .22s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:960px){
+  .board{grid-template-columns:repeat(3,minmax(240px,80vw))}
+  .grid-2,.pb-grid{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .kpis div:nth-child(4){border-left:0;padding-left:0}
+  .flow{grid-template-columns:1fr;gap:8px}
+  .flow .arrow{transform:rotate(90deg)}
+  .steps{grid-template-columns:1fr 1fr}
+  .step+.step{border-left:0;padding-left:0}
+  .ethics{columns:1}
+  .hdr-meta{display:none}
+}
+@media (max-width:620px){
+  .top-inner{gap:14px;padding:0 16px}
+  .concept-pill{display:none}
+  main{padding:24px 16px 48px}
+  h1.pg{font-size:28px}
+  .brief{font-size:23px}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpis div{border-left:0!important;padding-left:0!important}
+  .panel{padding:18px 16px}
+  .hbar{grid-template-columns:120px 1fr 24px}
+  .m-head,.m-body,.m-actions{padding-left:18px;padding-right:18px}
+  .m-title{font-size:26px}
+  .tag-row{grid-template-columns:1fr}
+  .tier-row{grid-template-columns:1fr}
+  .scrim{padding:0}
+  .modal{max-height:100vh;border-radius:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand"><b>Signal Desk</b><span class="concept-pill" id="modePill">Live · free sources</span></div>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab" data-page="overview" aria-current="page">Overview</button>
+      <button class="tab" data-page="feed">Signal feed</button>
+      <button class="tab" data-page="pipeline">Pipeline <span class="badge" id="pipeBadge">0</span></button>
+      <button class="tab" data-page="builder">Profile builder</button>
+      <button class="tab" data-page="export">Export table <span class="badge" id="expBadge">0</span></button>
+      <button class="tab" data-page="method">Methods &amp; data</button>
+    </nav>
+    <div class="hdr-meta"><span id="hdrMeta">Loading…</span> <button class="btn ghost sm" id="pullNow" style="margin-left:8px">Pull now</button></div>
+  </div>
+</header>
+
+<main>
+  <!-- OVERVIEW -->
+  <section class="page active" id="page-overview">
+    <div class="note" id="briefDate" style="margin-bottom:10px"></div>
+    <p class="brief" id="briefText"></p>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="flow" aria-label="Pipeline">
+      <div class="node"><b>News API</b><span>Pulled every 30 minutes, plus a 7-day catch-up on start</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node"><b>Classify</b><span>Each story becomes a consignment signal, a buy signal, or noise</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="split">
+        <div class="node" style="--c:var(--consign)"><b>Consignment signal</b><span>Capture the item, the person and a summary. The chain ends here.</span></div>
+        <div class="node" style="--c:var(--buy)"><b>Buy signal → Profile builder</b><span>Wikipedia, Wikidata and museum records, turned into tags by keyword rules</span></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h2 class="sec">Newest consignment signals</h2>
+        <ul class="mini" id="ovConsign"></ul>
+      </div>
+      <div class="panel">
+        <h2 class="sec">Strongest buy profiles</h2>
+        <ul class="mini" id="ovBuy"></ul>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:24px">
+      <h2 class="sec">Collecting tags across buy profiles</h2>
+      <div class="hbars" id="ovTags"></div>
+      <p class="note">Select a tag to see those people in the signal feed. Dashed tags mean net worth is unknown, so the tier bar could not be checked.</p>
+    </div>
+  </section>
+
+  <!-- FEED -->
+  <section class="page" id="page-feed">
+    <h1 class="pg">Signal feed</h1>
+    <p class="lede">Every story the desk pulled, newest pull first. Select a row to open the person, or tick rows to add several people to the pipeline or the export table at once.</p>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Signal type" id="typeSeg">
+        <button data-type="all" aria-pressed="true">All</button>
+        <button data-type="consign" aria-pressed="false">Consignment</button>
+        <button data-type="buy" aria-pressed="false">Buy</button>
+      </div>
+      <input class="search" id="feedSearch" type="search" placeholder="Search people, items, stories" aria-label="Search the feed">
+      <select class="sel" id="tagFilter" aria-label="Filter by tag"><option value="">All tags</option></select>
+    </div>
+    <div class="bulkbar" id="bulkbar" hidden>
+      <span id="bulkCount"></span>
+      <button class="btn sm" id="bulkTrack">Add to pipeline</button>
+      <button class="btn sm" id="bulkAdd">Add to export table</button>
+      <button class="btn sm ghost" id="bulkClear">Clear selection</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="chk"><input type="checkbox" id="chkAll" aria-label="Select all visible rows"></th>
+          <th>Pulled</th><th>Signal</th><th>Event</th><th>Person</th><th>Tags</th>
+        </tr></thead>
+        <tbody id="feedBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section class="page" id="page-pipeline">
+    <h1 class="pg">Pipeline</h1>
+    <p class="lede">People you chose to follow, one card per person with every story about them, from first look to first contact. Nothing lands here on its own: select Track on the Overview or in a person's pop-up, or tick rows in the signal feed and select Add to pipeline.</p>
+    <div class="board" id="board"></div>
+  </section>
+
+  <!-- PROFILE BUILDER -->
+  <section class="page" id="page-builder">
+    <h1 class="pg">Profile builder</h1>
+    <p class="lede">Buy signals continue here. The builder looks a person up on Wikipedia, Wikidata and two museum collections (The Met and Cleveland), then keyword rules turn the findings into collecting, wealth and affiliation tags. Free sources only, no AI.</p>
+    <div class="pb-grid">
+      <div class="panel">
+        <label class="fl" for="pbPick">Person from a story</label>
+        <select id="pbPick"></select>
+        <div class="or">or enter a new name</div>
+        <label class="fl" for="pbName">New name</label>
+        <input type="text" id="pbName" placeholder="A full name, e.g. as written in a story" autocomplete="off">
+        <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" id="pbRun">Build profile</button></div>
+        <div class="sources" id="pbSources"></div>
+      </div>
+      <div class="panel" id="pbOut"><p class="placeholder">Pick a person or type a name, then select Build profile.</p></div>
+    </div>
+  </section>
+
+  <!-- EXPORT -->
+  <section class="page" id="page-export">
+    <h1 class="pg">Export table</h1>
+    <p class="lede">People you selected in the signal feed or the profile builder. The CSV includes each person's bio, most recent story, past stories and tags.</p>
+    <div class="exp-actions">
+      <button class="btn" id="csvBtn">Export to CSV</button>
+      <button class="btn ghost" id="expClear">Clear table</button>
+      <span class="note" id="expNote"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Person</th><th>Signal</th><th>Bio</th><th>Most recent story</th><th>Past stories</th><th>Tags</th><th></th></tr></thead>
+        <tbody id="expBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- METHOD -->
+  <section class="page" id="page-method">
+    <h1 class="pg">Methods &amp; data</h1>
+    <p class="lede">How a news story becomes either a consignment lead or a tagged buyer profile, and where each piece of data comes from. Everything here runs on free sources.</p>
+    <div class="steps">
+      <div class="step"><b><em>1</em>Pull</b><p>News API every 30 minutes (48 requests a day), plus a one-request-per-day catch-up for the last week.</p></div>
+      <div class="step"><b><em>2</em>Split</b><p>Estate, family and financial-change stories, and announced sales, become consignment signals. IPOs, company sales, payouts and new homes become buy signals.</p></div>
+      <div class="step"><b><em>3</em>Consignment</b><p>Capture only the item, the person and a one-line summary. No further research runs.</p></div>
+      <div class="step"><b><em>4</em>Profile builder</b><p>For buyers: Wikipedia, Wikidata and museum credit lines are looked up in the background, and keyword rules write the tags, each tied back to the person and their stories.</p></div>
+    </div>
+
+    <h2 class="sec">Sources</h2>
+    <div class="tbl-wrap" style="margin-bottom:30px">
+      <table style="min-width:760px">
+        <thead><tr><th>Source</th><th>Status</th><th>What it contributes</th><th>Notes</th></tr></thead>
+        <tbody id="srcBody" style="cursor:default"></tbody>
+      </table>
+    </div>
+
+    <h2 class="sec">Collecting tags and the net-worth bar</h2>
+    <p class="note" style="margin:-6px 0 14px;font-size:13.5px;color:var(--ink-2)">A collecting tag is only applied when there is evidence of the interest <em>and</em> the person's net worth clears the bar for that category's tier. Evidence below the bar is kept, struck through, so a specialist can see it.</p>
+    <div class="panel" id="tierPanel" style="margin-bottom:30px"></div>
+
+    <h2 class="sec">Wealth and affiliation markers</h2>
+    <div class="panel" style="margin-bottom:30px">
+      <div class="tags" id="markerList"></div>
+      <p class="note" style="margin-bottom:0">Markers carry no net-worth bar. Each one records which source produced it.</p>
+    </div>
+
+    <h2 class="sec">Responsible use</h2>
+    <div class="panel ethics">
+      <p><b>Live news, free sources.</b> Stories come from NewsAPI's free developer plan (search results arrive about 24 hours late). Profiles use Wikipedia, Wikidata and public museum collection APIs. No paid service or AI is called.</p>
+      <p><b>Consignment stops early on purpose.</b> Estate, family and financial-change stories are sensitive; the desk records only what the story says and routes first contact through an intermediary.</p>
+      <p><b>Tags are research leads, not facts.</b> Each tag shows its source so a specialist can verify it before any outreach.</p>
+      <p><b>Privacy law applies.</b> Profiling under GDPR and similar laws needs a lawful basis; keep data minimal and delete it when stale.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>MIT Entertainment, Media &amp; Sports Lab action learning project. Live news screened with free sources; confirm every signal against the original record before any outreach.</span>
+  <button id="resetBtn">Reset selections</button>
+</footer>
+
+<div class="scrim" id="scrim" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="modal"></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   Taxonomy
+   ===================================================================== */
+const TIERS = {
+  1:{label:"Blue-chip fine art", min:500e6, cls:"t1", why:"Seven- and eight-figure lots; buyers need deep liquidity"},
+  2:{label:"Fine art & major collecting", min:50e6, cls:"t2", why:"Six- and seven-figure lots"},
+  3:{label:"Luxury & entry collecting", min:5e6, cls:"t3", why:"Four- to six-figure lots; often the first step into auctions"}
+};
+const CATS = {
+  contemporary:{label:"Contemporary", tier:1}, impmod:{label:"Impressionist & Modern", tier:1},
+  british:{label:"British Masters", tier:1}, oldmasters:{label:"Old Masters", tier:1},
+  asian:{label:"Asian Art", tier:2}, latam:{label:"Latin American Art", tier:2}, african:{label:"African Modern & Contemporary", tier:2},
+  islamic:{label:"Islamic & Middle Eastern Art", tier:2}, photos:{label:"Photographs", tier:2}, design:{label:"Design & Decorative Arts", tier:2},
+  americana:{label:"Americana", tier:2}, books:{label:"Books & Manuscripts", tier:2}, jewelry:{label:"Jewelry", tier:2},
+  watches:{label:"Watches", tier:2}, cars:{label:"Collectible Cars", tier:2},
+  wine:{label:"Wine & Spirits", tier:3}, handbags:{label:"Handbags & Accessories", tier:3}, prints:{label:"Prints & Multiples", tier:3},
+  sports:{label:"Sports Memorabilia", tier:3}, streetwear:{label:"Sneakers & Streetwear", tier:3}
+};
+const MARKER_EXAMPLES = [
+  ["wealth","Net worth $___ (Wikidata)"],["wealth","Described as a billionaire"],["wealth","Recent liquidity: IPO / sale / payout"],
+  ["aff","Museum donor (The Met)"],["aff","Museum lender (Cleveland)"],["aff","Museum board"],["aff","Trustee"],
+  ["aff","Met Gala attendee"],["aff","Philanthropist"],["aff","Giving Pledge signatory"],["aff","Art collector"],["aff","Watch collector"],["aff","Wine collector"]
+];
+const SOURCES = [
+  {k:"news", label:"NewsAPI (free plan)", used:"In use", gives:"The story itself: event, people named, date, outlet", real:"100 requests a day; search results arrive about 24 hours late"},
+  {k:"wikipedia", label:"Wikipedia and Wikidata", used:"In use", gives:"Bio, occupations, recorded net worth, family", real:"Free, no key; only notable people have pages"},
+  {k:"met", label:"The Met Collection API", used:"In use", gives:"Credit lines naming the person (gifts, loans) and the departments of those works", real:"Free, no key"},
+  {k:"cleveland", label:"Cleveland Museum of Art Open Access", used:"In use", gives:"Credit lines naming the person and the departments of those works", real:"Free, no key"},
+  {k:"rules", label:"Keyword rules", used:"In use", gives:"Turn the findings into collecting tags and markers", real:"Runs locally; no AI"},
+  {k:"social", label:"Social media API", used:"Not used (paid)", gives:"Event attendance, collecting posts", real:"X API is pay per use; Instagram cannot look up individuals"},
+  {k:"forbes", label:"Forbes", used:"Not used (paid)", gives:"Net worth and rankings", real:"No public API; licensed feed needs a quote"},
+  {k:"claude", label:"Claude", used:"Not used (paid)", gives:"AI tagging and research briefs", real:"Turn on later by setting FREE_APIS_ONLY=false"}
+];
+const SRC_LABEL = Object.fromEntries(SOURCES.map(s=>[s.k,s.label]));
+
+/* =====================================================================
+   Live data: GET /api/live (stories and people built from the desk's real pulls)
+   ===================================================================== */
+let NOW = new Date();
+let PEOPLE = {}, STORIES = [], LIVE = {demo:false, stats:{}}, STATUS = null;
+function ingest(data){
+  NOW = new Date(); LIVE = data;
+  PEOPLE = data.people || {};
+  Object.entries(CUSTOM||{}).forEach(([id,p])=>{ if(!PEOPLE[id]) PEOPLE[id]=p; });
+  STORIES = (data.stories||[]).map(s=>({...s, pulled:new Date(s.pulled), published:new Date(s.published)})).sort((a,b)=>b.pulled-a.pulled);
+}
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem("sdConcept."+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem("sdConcept."+k, JSON.stringify(v)); }catch(e){} }
+};
+let EXPORT = new Set(store.get("export",[]));
+const CUSTOM = store.get("custom",{});      // profiles built from typed names (added to PEOPLE on each load)
+let picked = new Set();                      // rows ticked in the feed (person ids)
+let feedType = "all";
+function saveExport(){ store.set("export",[...EXPORT]); renderBadge(); }
+const STAGES = [
+  {id:"tracking",   label:"Tracking",                 hint:"Flagged from the dashboard; research and timing still open", next:"Hand off to specialist"},
+  {id:"specialist", label:"Handed off to specialist", hint:"A department specialist owns the next step",                 next:"Mark contacted"},
+  {id:"contacted",  label:"Contacted",                hint:"First approach made"}
+];
+let PIPE = store.get("pipeline",{});          // person id -> stage id; only filled by the Track button
+Object.keys(PIPE).forEach(id=>{ if(!STAGES.some(s=>s.id===PIPE[id])) delete PIPE[id]; });
+function savePipe(){ store.set("pipeline",PIPE); renderBadge(); }
+function setStage(id, stage){
+  if(stage) PIPE[id]=stage; else delete PIPE[id];
+  savePipe(); renderBoard(); renderOverview();
+  if($("#scrim").classList.contains("on")) openPerson(id);
+}
+const stageLabel = id => (STAGES.find(s=>s.id===PIPE[id])||{}).label;
+const trackBtn = id => PIPE[id]
+  ? `<button class="track-btn on" data-track="${esc(id)}" title="In the pipeline: ${esc(stageLabel(id))}. Select to stop tracking.">✓ ${PIPE[id]==="tracking"?"Tracking":esc(stageLabel(id))}</button>`
+  : `<button class="track-btn" data-track="${esc(id)}">+ Track</button>`;
+
+/* =====================================================================
+   Helpers
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = v => v==null ? "Unknown" : v>=1e9 ? "$"+(v/1e9).toFixed(v>=1e10?0:1).replace(/\.0$/,"")+"B" : "$"+Math.round(v/1e6)+"M";
+const fmtDay = t => t.toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"});
+const fmtTime = t => t.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+const fmtDate = t => t.toLocaleDateString([], {month:"short", day:"numeric"});
+const storiesOf = id => STORIES.filter(s=>s.person===id).sort((a,b)=>b.published-a.published);
+const latestOf = id => storiesOf(id)[0];
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove("on"),2400); }
+
+/* Resolve a person's tags: collecting tags gated by the tier's net-worth bar, plus markers. */
+function tagsOf(id){
+  const p = PEOPLE[id]; if(!p || !p.tags) return {collecting:[], below:[], markers:[], unknown:[]};
+  const collecting=[], below=[], markers=[], unknown=[];
+  p.tags.forEach(t=>{
+    if(t[0]==="wealth"||t[0]==="aff") markers.push({kind:t[0], label:t[1], src:t[2]});
+    else { const c=CATS[t[0]]; if(!c) return; const tag={key:t[0], label:c.label, tier:c.tier, src:t[1], why:t[2]};
+      if(p.worth==null){ tag.unv=true; unknown.push(tag); }          // no net worth on record: bar can't be checked
+      else (p.worth >= TIERS[c.tier].min ? collecting : below).push(tag); }
+  });
+  collecting.sort((a,b)=>a.tier-b.tier); unknown.sort((a,b)=>a.tier-b.tier);
+  return {collecting, below, markers, unknown};
+}
+const tagHtml = t => t.tier ? `<span class="tag ${TIERS[t.tier].cls}${t.unv?" unv":""}" title="${esc(TIERS[t.tier].label)}${t.unv?": net worth unknown, tier bar not checked":""}">${esc(t.label)}</span>`
+                            : `<span class="tag ${t.kind}">${esc(t.label)}</span>`;
+const shownTags = t => [...t.collecting, ...t.unknown];
+const allTagLabels = id => { const t=tagsOf(id); return [...shownTags(t).map(x=>x.label), ...t.markers.map(x=>x.label)]; };
+/* Consignment stories show no event label (no "Death", "Divorce", "Debt"); buy stories keep theirs (IPO, Company sale...). */
+const evLabel = s => s.signal==="consign" ? "" : s.event;
+const metaLine = (...parts) => parts.filter(Boolean).map(esc).join(" · ");
+const sigPill = s => `<span class="sig ${s}">${s==="consign"?"Consignment":"Buy"}</span>`;
+
+/* =====================================================================
+   Navigation
+   ===================================================================== */
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
+function go(p){
+  document.querySelectorAll(".tab").forEach(b=>b.dataset.page===p ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current"));
+  document.querySelectorAll("section.page").forEach(s=>s.classList.toggle("active", s.id==="page-"+p));
+  if(p==="export") renderExport();
+  if(p==="pipeline") renderBoard();
+  window.scrollTo({top:0});
+}
+function renderBadge(){ $("#expBadge").textContent = EXPORT.size; $("#pipeBadge").textContent = Object.keys(PIPE).length; }
+
+/* =====================================================================
+   Overview
+   ===================================================================== */
+function renderOverview(){
+  const day = STORIES.filter(s=>NOW-s.pulled < 24*3600e3);
+  const cons = STORIES.filter(s=>s.signal==="consign"), buys = STORIES.filter(s=>s.signal==="buy");
+  const buyPeople = Object.keys(PEOPLE).filter(id=>PEOPLE[id].signal==="buy" && PEOPLE[id].tags && STORIES.some(s=>s.person===id));
+  $("#briefDate").textContent = "Desk brief for "+NOW.toLocaleDateString([], {weekday:"long", month:"long", day:"numeric"});
+  const dc = day.filter(s=>s.signal==="consign").length, db = day.filter(s=>s.signal==="buy").length;
+  const top = buyPeople.map(id=>PEOPLE[id]).sort((a,b)=>b.worth-a.worth)[0];
+  $("#briefText").innerHTML = !STORIES.length ? (LIVE.demo ? "Demo mode: add your NewsAPI key to .env to see live stories." : "No signals yet. The first pulls and the 7-day catch-up are running; this page refreshes every minute.")
+    : `${day.length} signal stor${day.length===1?"y":"ies"} in the last 24 hours: ${dc} consignment and ${db} buy.` + (cons[0] ? ` Newest consignment: <a href="#" class="lnk" data-person="${esc(cons[0].person)}" style="color:inherit">${esc(PEOPLE[cons[0].person].name.replace(/^Estate of /,"the estate of "))}</a>${cons[0].item && cons[0].item!=="Not named in coverage" ? `, with ${esc(cons[0].item.split(";")[0].toLowerCase())}` : ""}.` : "");
+  $("#kpis").innerHTML = [
+    [(LIVE.stats&&LIVE.stats.scanned_month||0).toLocaleString(),"articles scanned this month"],[cons.length,"consignment signals"],[buys.length,"buy signals"],
+    [STORIES.length,"signal stories, last 14 days"],[Object.keys(PIPE).length,"people in the pipeline"]
+  ].map(([n,t])=>`<div><strong class="num">${n}</strong><small>${t}</small></div>`).join("");
+
+  const seen=new Set();
+  $("#ovConsign").innerHTML = cons.filter(s=>!seen.has(s.person)&&seen.add(s.person)).slice(0,6).map(s=>`<li data-person="${s.person}" tabindex="0">
+    <div><div class="m-name">${esc(PEOPLE[s.person].name)}</div><div class="m-sub">${esc(s.item)}</div></div>
+    <div class="m-right"><div class="note">${fmtDate(s.pulled)}</div>${trackBtn(s.person)}</div></li>`).join("");
+  $("#ovBuy").innerHTML = buyPeople.sort((a,b)=>(PEOPLE[b].worth||0)-(PEOPLE[a].worth||0) || shownTags(tagsOf(b)).length-shownTags(tagsOf(a)).length).slice(0,6).map(id=>{ const t=tagsOf(id);
+    return `<li data-person="${id}" tabindex="0"><div><div class="m-name">${esc(PEOPLE[id].name)}</div>
+      <div class="tags" style="margin-top:5px">${shownTags(t).slice(0,3).map(tagHtml).join("")||`<span class="note">No collecting tags yet</span>`}</div></div>
+      <div class="m-right num"><b>${money(PEOPLE[id].worth)}</b><div class="note">${esc(PEOPLE[id].worth!=null?(PEOPLE[id].worthSource==="news"?"described as billionaire":"Wikidata"):"net worth")}</div>${trackBtn(id)}</div></li>`; }).join("") || `<li class="note" style="cursor:default">No buyer profiles yet.</li>`;
+
+  const counts={}; buyPeople.forEach(id=>shownTags(tagsOf(id)).forEach(t=>counts[t.key]=(counts[t.key]||0)+1));
+  const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]||CATS[a[0]].tier-CATS[b[0]].tier); const max=rows.length?rows[0][1]:1;
+  $("#ovTags").innerHTML = rows.map(([k,v])=>`<button class="hbar" data-tagfilter="${esc(CATS[k].label)}" title="Show ${esc(CATS[k].label)} in the signal feed"><span class="lbl">${esc(CATS[k].label)}</span><span class="track"><span class="fill" style="display:block;width:${v/max*100}%;background:var(--${TIERS[CATS[k].tier].cls})"></span></span><span class="v num">${v}</span></button>`).join("") || `<p class="note">No collecting tags yet.</p>`;
+}
+
+/* =====================================================================
+   Signal feed
+   ===================================================================== */
+function feedRows(){
+  const q=$("#feedSearch").value.trim().toLowerCase(), tag=$("#tagFilter").value;
+  return STORIES.filter(s=>{
+    if(feedType!=="all" && s.signal!==feedType) return false;
+    const p=PEOPLE[s.person];
+    if(tag && !allTagLabels(s.person).includes(tag)) return false;
+    if(q && !(s.headline+" "+s.summary+" "+p.name+" "+(s.item||"")+" "+allTagLabels(s.person).join(" ")).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function renderFeed(){
+  const rows=feedRows(); let last=null; const out=[];
+  rows.forEach(s=>{
+    const key=s.pulled.getTime();
+    if(key!==last){ last=key; const n=rows.filter(r=>r.pulled.getTime()===key).length;
+      out.push(`<tr class="grp"><td colspan="6">Pull · ${fmtDay(s.pulled)}, ${fmtTime(s.pulled)} · ${n} stor${n===1?"y":"ies"}</td></tr>`); }
+    const p=PEOPLE[s.person], t=tagsOf(s.person);
+    const tagCell = s.signal==="consign"
+      ? `<span class="tag item">Item: ${esc(s.item)}</span>`
+      : (PEOPLE[s.person].pending ? `<span class="note">Profile building…</span>` : `<div class="tags">${shownTags(t).slice(0,3).map(tagHtml).join("")}${t.markers.slice(0,1).map(tagHtml).join("")}${(shownTags(t).length+t.markers.length)>4?`<span class="more">+${shownTags(t).length+t.markers.length-4}</span>`:""}</div>`);
+    out.push(`<tr class="row ${picked.has(s.person)?"picked":""}" data-person="${s.person}" tabindex="0">
+      <td class="chk"><input type="checkbox" data-pick="${s.person}" ${picked.has(s.person)?"checked":""} aria-label="Select ${esc(p.name)}"></td>
+      <td class="when num">${fmtDate(s.pulled)}<div class="note">${fmtTime(s.pulled)}</div></td>
+      <td>${sigPill(s.signal)}</td>
+      <td><div class="ev-title">${esc(s.headline)}</div><div class="ev-sub">${metaLine(evLabel(s), s.source, "published "+fmtTime(s.published))}</div></td>
+      <td><div class="p-name">${esc(p.name)}</div>${EXPORT.has(s.person)?`<div class="in-export">In export table</div>`:""}</td>
+      <td>${tagCell}</td></tr>`);
+  });
+  $("#feedBody").innerHTML = out.join("") || `<tr><td colspan="6" class="empty">No stories match. Clear the search or pick All.</td></tr>`;
+  const visible=[...new Set(rows.map(r=>r.person))];
+  $("#chkAll").checked = visible.length>0 && visible.every(id=>picked.has(id));
+  $("#chkAll").indeterminate = !$("#chkAll").checked && visible.some(id=>picked.has(id));
+  $("#bulkbar").hidden = picked.size===0;
+  $("#bulkCount").textContent = `${picked.size} ${picked.size===1?"person":"people"} selected`;
+}
+function initTagFilter(){
+  const labels=new Set(); Object.keys(PEOPLE).forEach(id=>allTagLabels(id).forEach(l=>labels.add(l)));
+  const cats=[...labels].filter(l=>Object.values(CATS).some(c=>c.label===l)).sort(), marks=[...labels].filter(l=>!cats.includes(l)).sort();
+  $("#tagFilter").innerHTML = `<option value="">All tags</option><optgroup label="Collecting">${cats.map(l=>`<option>${esc(l)}</option>`).join("")}</optgroup><optgroup label="Wealth and affiliation">${marks.map(l=>`<option>${esc(l)}</option>`).join("")}</optgroup>`;
+}
+$("#typeSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; feedType=b.dataset.type;
+  document.querySelectorAll("#typeSeg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); renderFeed(); });
+$("#feedSearch").oninput=renderFeed; $("#tagFilter").onchange=renderFeed;
+function showTagInFeed(label){
+  feedType="all"; document.querySelectorAll("#typeSeg button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.type==="all"));
+  $("#feedSearch").value=""; $("#tagFilter").value=label; renderFeed(); go("feed");
+  toast(`Signal feed filtered to ${label}`);
+}
+$("#chkAll").onchange=e=>{ const ids=[...new Set(feedRows().map(r=>r.person))]; ids.forEach(id=>e.target.checked?picked.add(id):picked.delete(id)); renderFeed(); };
+$("#bulkAdd").onclick=()=>{ const n=[...picked].filter(id=>!EXPORT.has(id)).length; picked.forEach(id=>EXPORT.add(id)); picked.clear(); saveExport(); renderFeed(); renderOverview();
+  toast(n?`${n} ${n===1?"person":"people"} added to the export table`:"Already in the export table"); };
+$("#bulkClear").onclick=()=>{ picked.clear(); renderFeed(); };
+$("#bulkTrack").onclick=()=>{
+  // New people start in Tracking; anyone already further along keeps their stage.
+  const added=[...picked].filter(id=>!PIPE[id]); added.forEach(id=>PIPE[id]="tracking");
+  const n=added.length, already=picked.size-n;
+  picked.clear(); savePipe(); renderBoard(); renderFeed(); renderOverview();
+  toast(n?`${n} ${n===1?"person":"people"} added to Tracking${already?` (${already} already in the pipeline)`:""}`:"Already in the pipeline");
+};
+
+/* =====================================================================
+   Person pop-up
+   ===================================================================== */
+let lastFocus=null;
+function openPerson(id){
+  const p=PEOPLE[id]; if(!p) return; lastFocus=document.activeElement;
+  const st=storiesOf(id), now=st[0], prev=st.slice(1), t=tagsOf(id);
+  const color = s => s.signal==="consign"?"var(--consign)":"var(--buy)";
+  const body = p.pending ? `<h4>Bio</h4><p class="stop-note" style="background:var(--buy-soft)">Profile is being built from free sources in the background. Check back in a minute, or open the profile builder now.</p>`
+    : p.signal==="buy" || p.tags ? `
+      <h4>Bio</h4><p style="margin:0">${p.bio?esc(p.bio):`<span class="note">No Wikipedia page found. Likely a private individual.</span>`}</p>
+      <div class="facts"><span>Net worth</span><b class="num">${esc(p.worthLabel||"Unknown")}</b>${p.wikipedia_url?`<span>Source</span><b><a class="lnk" href="${esc(p.wikipedia_url)}" target="_blank" rel="noopener noreferrer">Wikipedia</a></b>`:""}</div>
+      <h4>Tags</h4>
+      <div class="tags">${shownTags(t).map(tagHtml).join("")}${t.markers.map(tagHtml).join("")}${!shownTags(t).length&&!t.markers.length?`<span class="note">No tags from free sources yet.</span>`:""}</div>
+      ${t.below.length?`<p class="note" style="margin:8px 0 0">Below the net-worth bar: ${t.below.map(x=>esc(x.label)).join(", ")}</p>`:""}`
+    : `<h4>Bio</h4><p class="stop-note">Consignment signal: the desk records only the item, the person and the story summary, so no bio or tags are researched. Open the profile builder to research this person anyway.</p>`;
+  $("#modal").innerHTML = `
+    <div class="m-head">
+      <button class="m-close" id="mClose" aria-label="Close">&times;</button>
+      <div class="m-kicker">${sigPill(p.signal)}<span>${st.length} stor${st.length===1?"y":"ies"} on file</span>${PIPE[id]?`<span class="in-export">Pipeline: ${esc(stageLabel(id))}</span>`:""}${EXPORT.has(id)?`<span class="in-export">In export table</span>`:""}</div>
+      <h2 class="m-title" id="mTitle">${esc(p.name)}</h2><p class="m-role">${esc(p.role)}</p>
+    </div>
+    <div class="m-body">
+      ${now?`<h4>Current story</h4><div class="story-now" style="--c:${color(now)}"><div class="note">${metaLine(fmtDate(now.published), now.source, evLabel(now))}</div>
+        <div class="h">${now.url?`<a class="lnk" style="color:inherit" href="${esc(now.url)}" target="_blank" rel="noopener noreferrer">${esc(now.headline)}</a>`:esc(now.headline)}</div><p>${esc(now.summary)}</p>${now.item?`<p><b>Item:</b> ${esc(now.item)}</p>`:""}</div>`:`<h4>Current story</h4><p class="note">No stories on file. This profile was built from a typed name.</p>`}
+      ${body}
+      <h4>Previous stories</h4>
+      ${prev.length?`<ul class="prev">${prev.map(s=>`<li style="--c:${color(s)}"><div class="d">${metaLine(fmtDate(s.published), s.source, evLabel(s))}</div><div>${esc(s.headline)}</div></li>`).join("")}</ul>`:`<p class="note">None yet.</p>`}
+    </div>
+    <div class="m-actions">
+      <button class="btn" id="mExport">${EXPORT.has(id)?"Remove from export table":"Add to export table"}</button>
+      <button class="btn ghost" id="mTrack">${!PIPE[id]?"Track in pipeline":PIPE[id]==="tracking"?"Stop tracking":`Remove from pipeline (${esc(stageLabel(id))})`}</button>
+      <button class="btn ghost" id="mBuild">Open in profile builder</button>
+    </div>`;
+  $("#scrim").classList.add("on"); $("#scrim").setAttribute("aria-hidden","false"); $("#mClose").focus();
+  $("#mClose").onclick=closePerson;
+  $("#mExport").onclick=()=>{ EXPORT.has(id)?EXPORT.delete(id):EXPORT.add(id); saveExport(); renderFeed(); renderOverview(); openPerson(id);
+    toast(EXPORT.has(id)?`${p.name} added to the export table`:`${p.name} removed from the export table`); };
+  $("#mTrack").onclick=()=>{ const was=PIPE[id]; setStage(id, was?null:"tracking"); toast(was?`${p.name} removed from the pipeline`:`${p.name} added to Tracking`); };
+  $("#mBuild").onclick=()=>{ closePerson(); go("builder"); $("#pbPick").value=id; $("#pbName").value=""; buildProfile(); };
+}
+function closePerson(){ $("#scrim").classList.remove("on"); $("#scrim").setAttribute("aria-hidden","true"); if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+$("#scrim").addEventListener("click",e=>{ if(e.target===$("#scrim")) closePerson(); });
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && $("#scrim").classList.contains("on")) closePerson();
+  if((e.key==="Enter"||e.key===" ") && e.target.matches("[data-person]:not(a):not(button)")){ e.preventDefault(); openPerson(e.target.dataset.person); }
+});
+document.addEventListener("click",e=>{
+  const tb=e.target.closest("[data-track]");
+  if(tb){ e.preventDefault(); e.stopPropagation(); const id=tb.dataset.track, was=PIPE[id]; setStage(id, was?null:"tracking");
+    toast(was?`${PEOPLE[id].name} removed from the pipeline`:`${PEOPLE[id].name} added to Tracking`); return; }
+  const sb=e.target.closest("[data-stage]");
+  if(sb){ const id=sb.dataset.stage, to=sb.dataset.to||null; setStage(id,to);
+    toast(to?`${PEOPLE[id].name} moved to ${STAGES.find(x=>x.id===to).label}`:`${PEOPLE[id].name} removed from the pipeline`); return; }
+  const tf=e.target.closest("[data-tagfilter]");
+  if(tf){ showTagInFeed(tf.dataset.tagfilter); return; }
+  const pk=e.target.closest("[data-pick]");
+  if(pk){ e.stopPropagation(); pk.checked?picked.add(pk.dataset.pick):picked.delete(pk.dataset.pick); renderFeed(); return; }
+  if(e.target.closest("td.chk")) return;
+  const rm=e.target.closest("[data-remove]"); if(rm){ EXPORT.delete(rm.dataset.remove); saveExport(); renderExport(); renderFeed(); renderOverview(); return; }
+  const t=e.target.closest("[data-person]"); if(t && !e.target.closest(".modal")){ e.preventDefault(); openPerson(t.dataset.person); }
+});
+
+/* =====================================================================
+   Pipeline board
+   ===================================================================== */
+function renderBoard(){
+  $("#board").innerHTML = STAGES.map((st,i)=>{
+    const ids=Object.keys(PIPE).filter(id=>PIPE[id]===st.id).sort((a,b)=>(latestOf(b)?.published||0)-(latestOf(a)?.published||0));
+    const cards=ids.map(id=>{ const p=PEOPLE[id], allSt=storiesOf(id), s=allSt[0], t=tagsOf(id);
+      const items=[...new Set(allSt.map(x=>x.item).filter(Boolean))];
+      const detail = p.signal==="consign" && items.length ? items.map(it=>`<span class="tag item">Item: ${esc(it)}</span>`).join(" ")
+        : `<div class="tags">${t.collecting.slice(0,3).map(tagHtml).join("")}</div>`;
+      return `<div class="pcard"><div class="c-top"><button class="c-name" data-person="${esc(id)}">${esc(p.name)}</button>${sigPill(p.signal)}</div>
+        ${allSt.length?`<div class="c-count">${allSt.length} stor${allSt.length===1?"y":"ies"}</div><ul class="c-stories">${allSt.map(x=>`<li><span class="d">${esc(fmtDate(x.published))}:</span> ${esc(x.headline)}</li>`).join("")}</ul>`:""}
+        ${detail}
+        <div class="c-act">${i>0?`<button class="btn ghost sm" data-stage="${esc(id)}" data-to="${STAGES[i-1].id}">Back</button>`:`<button class="btn ghost sm" data-stage="${esc(id)}" data-to="">Stop tracking</button>`}${st.next?`<button class="btn sm" data-stage="${esc(id)}" data-to="${STAGES[i+1].id}">${st.next}</button>`:""}</div></div>`; }).join("");
+    const empty = i===0 ? "Nothing tracked yet. Select Track on the Overview or in a person's pop-up." : "Empty";
+    return `<div class="col"><h3>${st.label}<span class="num">${ids.length}</span></h3><p class="hint">${st.hint}</p>${cards||`<div class="empty-col">${empty}</div>`}</div>`;
+  }).join("");
+}
+
+/* =====================================================================
+   Profile builder
+   ===================================================================== */
+const STEPS = [
+  {k:"wikipedia", label:"Wikipedia and Wikidata", desc:"Bio, occupations, recorded net worth"},
+  {k:"met", label:"The Met Collection API", desc:"Credit lines naming them, and the works' departments"},
+  {k:"cleveland", label:"Cleveland Museum Open Access", desc:"Credit lines naming them, and the works' departments"},
+  {k:"news", label:"The desk's stories", desc:"Everything pulled about them so far"},
+  {k:"rules", label:"Keyword rules", desc:"Turn the findings into tags (no AI)"}
+];
+function renderPicker(){
+  const ids=Object.keys(PEOPLE).filter(id=>!id.startsWith("custom:"));
+  const opt = id => `<option value="${id}">${esc(PEOPLE[id].name)}</option>`;
+  const custom=Object.keys(PEOPLE).filter(id=>id.startsWith("custom:"));
+  $("#pbPick").innerHTML = `<option value="">Choose a person</option><optgroup label="Buy signals">${ids.filter(i=>PEOPLE[i].signal==="buy").map(opt).join("")}</optgroup>`+
+    `<optgroup label="Consignment signals (not researched by default)">${ids.filter(i=>PEOPLE[i].signal==="consign").map(opt).join("")}</optgroup>`+
+    (custom.length?`<optgroup label="Built from typed names">${custom.map(opt).join("")}</optgroup>`:"");
+}
+$("#pbPick").onchange=()=>{ if($("#pbPick").value) $("#pbName").value=""; };
+$("#pbName").oninput=()=>{ if($("#pbName").value.trim()) $("#pbPick").value=""; };
+$("#pbName").onkeydown=e=>{ if(e.key==="Enter") buildProfile(); };
+$("#pbRun").onclick=buildProfile;
+
+let pbRun=0;
+async function buildProfile(){
+  const pickId=$("#pbPick").value; const typed=$("#pbName").value.trim();
+  if(!pickId && !typed){ toast("Pick a person or type a name first"); return; }
+  const name = typed || PEOPLE[pickId].name, run=++pbRun;
+  $("#pbRun").disabled=true;
+  $("#pbSources").innerHTML = STEPS.map(s=>`<div class="src run" id="src-${s.k}"><span class="dot"></span><div><b>${s.label}</b><small>${s.desc}</small><div class="found"></div></div></div>`).join("");
+  $("#pbOut").innerHTML = `<p class="placeholder">Looking up ${esc(name)} on free sources…</p>`;
+  let res;
+  try{ const r=await fetch("/api/live/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}); res=await r.json(); if(!r.ok) throw new Error(res.error||"Lookup failed"); }
+  catch(e){ if(run===pbRun){ $("#pbOut").innerHTML=`<p class="placeholder">${esc(e.message||"Lookup failed. Is the server running?")}</p>`; $("#pbRun").disabled=false; } return; }
+  if(run!==pbRun) return;
+  const id = res.id, p = res.person;
+  if(!STORIES.some(s=>s.person===id) && !(LIVE.people||{})[id]){ CUSTOM[id]=p; store.set("custom",CUSTOM); }
+  PEOPLE[id]=p; renderPicker(); if([...$("#pbPick").options].some(o=>o.value===id)) $("#pbPick").value=id;
+  for(const s of STEPS){                                   // reveal each source's findings in turn
+    const el=$("#src-"+s.k); await new Promise(r=>setTimeout(r,180));
+    el.classList.remove("run"); el.classList.add("done");
+    el.querySelector(".found").innerHTML = `<ul>${((p.find||{})[s.k]||["Nothing found"]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+  }
+  $("#pbRun").disabled=false;
+  renderProfile(id); renderFeed(); renderOverview(); initTagFilter();
+}
+
+function renderProfile(id){
+  const p=PEOPLE[id], t=tagsOf(id), st=storiesOf(id);
+  const pos = v => Math.max(0, Math.min(100, (Math.log10(v)-6)/4*100));     // $1M .. $10B, log scale
+  const marks=[[5e6,"$5M"],[50e6,"$50M"],[500e6,"$500M"]];
+  const row = tg => `<div class="tag-row"><div>${tagHtml(tg)}</div><div class="why">${tg.why?esc(tg.why)+" · ":""}${tg.src.map(s=>`<span class="srcchip">${esc(SRC_LABEL[s]||s)}</span>`).join("")}</div></div>`;
+  const tierName = n => TIERS[n].label;
+  const strongest = t.collecting.filter(x=>x.tier===Math.min(...t.collecting.map(c=>c.tier)||[3])).map(x=>x.label);
+  $("#pbOut").innerHTML = `
+    <div class="prof-head"><div><h2 class="prof-name">${esc(p.name)}</h2><p class="prof-role">${esc(p.role)}</p></div>
+      <div>${sigPill(p.signal)}</div></div>
+    <div class="nw">
+      <div class="nw-top"><span class="note">Net worth · ${esc(p.worthLabel||"Unknown")}</span><b class="num">${money(p.worth)}</b></div>
+      <div class="nw-bar" role="img" aria-label="Net worth ${money(p.worth)} on a scale from $1M to $10B">
+        ${marks.map(([v,l])=>`<span class="nw-mark" style="left:${pos(v)}%"><span>${l}</span></span>`).join("")}
+        ${p.worth!=null?`<span class="nw-pin" style="left:${pos(p.worth)}%"></span>`:""}
+      </div>
+      <div class="nw-legend"><span><i style="background:var(--t3-soft);border:1px solid var(--t3)"></i>${tierName(3)} from $5M</span><span><i style="background:var(--t2-soft);border:1px solid var(--t2)"></i>${tierName(2)} from $50M</span><span><i style="background:var(--t1-soft);border:1px solid var(--t1)"></i>${tierName(1)} from $500M</span></div>
+    </div>
+    <p class="claude-note">${p.worth==null?`No net worth on record, so the tier bar can't be checked. ${t.unknown.length?`Evidence found for ${t.unknown.map(x=>x.label).join(", ")}.`:"No collecting evidence found yet."}`:t.collecting.length?`Strongest fit: ${strongest.join(", ")} (${esc(TIERS[t.collecting[0].tier].label.toLowerCase())}). ${t.collecting.length} collecting tag${t.collecting.length===1?" clears":"s clear"} the net-worth bar at ${money(p.worth)}.`:t.below.length?`Collecting interests found, but none clear the net-worth bar at ${money(p.worth)} yet.`:`No collecting evidence found in free sources yet.`}${t.below.length?` ${t.below.map(x=>x.label).join(", ")} ${t.below.length===1?"has":"have"} evidence but sit${t.below.length===1?"s":""} below the bar for ${t.below.length===1?"its":"their"} tier.`:""} <span class="note">(keyword rules, no AI)</span></p>
+    <div class="tag-group"><h5>Collecting</h5><div class="tag-list">${shownTags(t).map(row).join("")||`<p class="note">${p.worth==null?"No collecting evidence found.":"None clear the bar."}</p>`}</div></div>
+    ${t.below.length?`<div class="tag-group"><h5>Evidence below the net-worth bar</h5><div class="tag-list">${t.below.map(x=>`<div class="tag-row"><div><span class="tag below">${esc(x.label)}</span></div><div class="why">Needs ${money(TIERS[x.tier].min)} for ${esc(TIERS[x.tier].label.toLowerCase())} · ${esc(x.why||"")}</div></div>`).join("")}</div></div>`:""}
+    <div class="tag-group"><h5>Wealth and affiliation</h5><div class="tag-list">${t.markers.map(row).join("")||`<p class="note">None found.</p>`}</div></div>
+    ${(p.credits||[]).length?`<div class="tag-group"><h5>Museum credit lines</h5><ul class="prev">${p.credits.map(c=>`<li><div class="d">${esc(c.museum)} · ${esc(c.department||"")}</div><div>${c.url?`<a class="lnk" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.title||"Untitled")}</a>`:esc(c.title||"Untitled")}: ${esc(c.credit||"")}</div></li>`).join("")}</ul></div>`:""}
+    <div class="tag-group"><h5>Events tied to this person</h5>
+      ${st.length?`<ul class="prev">${st.map(s=>`<li style="--c:${s.signal==="consign"?"var(--consign)":"var(--buy)"}"><div class="d">${metaLine(fmtDate(s.published), evLabel(s), s.source)}</div><div>${esc(s.headline)}</div></li>`).join("")}</ul>`:`<p class="note">No stories pulled for this name yet.</p>`}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
+      <button class="btn" id="pbExport">${EXPORT.has(id)?"Remove from export table":"Add to export table"}</button>
+      ${st.length?`<button class="btn ghost" id="pbOpen">Open story pop-up</button>`:""}
+      ${p.wikipedia_url?`<a class="btn ghost" style="text-decoration:none" href="${esc(p.wikipedia_url)}" target="_blank" rel="noopener noreferrer">Wikipedia page</a>`:""}
+    </div>`;
+  $("#pbExport").onclick=()=>{ EXPORT.has(id)?EXPORT.delete(id):EXPORT.add(id); saveExport(); renderProfile(id); renderFeed(); renderOverview();
+    toast(EXPORT.has(id)?`${p.name} added to the export table`:`${p.name} removed from the export table`); };
+  if(st.length) $("#pbOpen").onclick=()=>openPerson(id);
+}
+
+/* =====================================================================
+   Export table + CSV
+   ===================================================================== */
+const storyLine = s => `${fmtDate(s.published)}: ${s.headline}${s.summary?" (" + s.summary + ")":""}`;
+function exportRows(){
+  return [...EXPORT].filter(id=>PEOPLE[id]).map(id=>{
+    const p=PEOPLE[id], st=storiesOf(id), t=tagsOf(id);
+    return {id, p, now:st[0], past:st.slice(1), tags:[...shownTags(t).map(x=>x.label), ...t.markers.map(x=>x.label)], tagObjs:[...shownTags(t), ...t.markers]};
+  });
+}
+function renderExport(){
+  const rows=exportRows();
+  $("#expNote").textContent = rows.length?`${rows.length} ${rows.length===1?"person":"people"}`:"";
+  $("#csvBtn").disabled = !rows.length;
+  $("#expBody").innerHTML = rows.length ? rows.map(r=>`<tr>
+      <td><div class="p-name" style="cursor:pointer" data-person="${esc(r.id)}">${esc(r.p.name)}</div><div class="note">${esc(r.p.role)}</div></td>
+      <td>${sigPill(r.p.signal)}</td>
+      <td class="small">${r.p.bio?esc(r.p.bio):`<span class="note">Not researched (consignment)</span>`}</td>
+      <td class="small">${r.now?`<b>${esc(r.now.headline)}</b><div class="note">${fmtDate(r.now.published)} · ${esc(r.now.source)}</div>${r.now.item?`<div>Item: ${esc(r.now.item)}</div>`:""}`:`<span class="note">None</span>`}</td>
+      <td class="small">${r.past.length?r.past.map(s=>`<div>${esc(fmtDate(s.published))}: ${esc(s.headline)}</div>`).join(""):`<span class="note">None</span>`}</td>
+      <td><div class="tags">${r.tagObjs.map(tagHtml).join("")||`<span class="note">None</span>`}</div></td>
+      <td><button class="btn ghost sm" data-remove="${esc(r.id)}">Remove</button></td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">No one selected yet. Tick rows in the signal feed, or use Add to export table in a pop-up or the profile builder.</td></tr>`;
+}
+function csvCell(v){ const s=String(v??""); return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+$("#csvBtn").onclick=()=>{
+  const rows=exportRows(); if(!rows.length) return;
+  const head=["Name","Role","Signal type","Net worth","Net worth basis","Bio","Most recent story date","Most recent story","Most recent story summary","Item (consignment)","Past stories","Tags"];
+  const lines=[head.map(csvCell).join(",")].concat(rows.map(r=>[
+    r.p.name, r.p.role, r.p.signal==="consign"?"Consignment":"Buy", r.p.worth!=null?money(r.p.worth):"", r.p.worthLabel||"", r.p.bio||"",
+    r.now?r.now.published.toISOString().slice(0,10):"", r.now?r.now.headline:"", r.now?r.now.summary:"", r.now&&r.now.item?r.now.item:"",
+    r.past.map(storyLine).join(" | "), r.tags.join("; ")
+  ].map(csvCell).join(",")));
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`signal-desk-export-${NOW.toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+  toast(`Exported ${rows.length} ${rows.length===1?"person":"people"} to CSV`);
+};
+$("#expClear").onclick=()=>{ EXPORT.clear(); saveExport(); renderExport(); renderFeed(); renderOverview(); };
+
+/* =====================================================================
+   Methods & data
+   ===================================================================== */
+function renderMethod(){
+  $("#srcBody").innerHTML = SOURCES.map(s=>`<tr><td><b>${esc(s.label)}</b></td><td>${esc(s.used)}</td><td style="color:var(--ink-2)">${esc(s.gives)}</td><td class="note" style="font-size:13px">${esc(s.real)}</td></tr>`).join("");
+  $("#tierPanel").innerHTML = [1,2,3].map(n=>`<div class="tier-row"><div><b>${esc(TIERS[n].label)}</b><div class="note">${esc(TIERS[n].why)}</div></div>
+    <div class="num"><b>${money(TIERS[n].min)}+</b><div class="note">net worth</div></div>
+    <div class="tags">${Object.values(CATS).filter(c=>c.tier===n).map(c=>`<span class="tag ${TIERS[n].cls}">${esc(c.label)}</span>`).join("")}</div></div>`).join("");
+  $("#markerList").innerHTML = MARKER_EXAMPLES.map(([k,l])=>`<span class="tag ${k}">${esc(l)}</span>`).join("");
+}
+
+/* =====================================================================
+   Init
+   ===================================================================== */
+$("#resetBtn").onclick=()=>{ EXPORT.clear(); picked.clear(); PIPE={}; store.set("pipeline",{}); renderBoard(); Object.keys(CUSTOM).forEach(k=>{ delete PEOPLE[k]; delete CUSTOM[k]; }); store.set("custom",{}); saveExport();
+  renderPicker(); renderFeed(); renderOverview(); renderExport(); toast("Selections reset"); };
+function renderStatus(){
+  const s=STATUS; if(!s) return;
+  const hm = iso => iso ? new Date(iso).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) : "—";
+  $("#modePill").textContent = s.demo ? "Demo data · no NewsAPI key" : "Live · free sources";
+  $("#hdrMeta").textContent = s.demo ? "Demo mode" : `Last pull ${hm(s.last_pull&&s.last_pull.started_at)} · next ${hm(s.next_pull_at)} · ${s.requests_24h}/${s.request_limit} requests`;
+}
+async function loadLive(first){
+  try{
+    const [d, st] = await Promise.all([fetch("/api/live").then(r=>r.json()), fetch("/api/status").then(r=>r.json())]);
+    ingest(d); STATUS=st; renderStatus();
+    renderBadge(); renderOverview(); initTagFilter(); renderFeed(); renderBoard(); renderPicker();
+    if(document.querySelector("#page-export.active")) renderExport();
+  }catch(e){
+    if(first){ $("#briefText").textContent = "Couldn't reach the local server. Start it with python3 server.py, then reload."; $("#hdrMeta").textContent="Offline"; }
+  }
+}
+$("#pullNow").onclick = async () => { const b=$("#pullNow"); b.disabled=true; b.textContent="Pulling…";
+  try{ const r=await (await fetch("/api/pull",{method:"POST"})).json();
+    toast(r.status==="quota"?"Daily request limit reached":r.status==="error"?`Pull failed: ${r.message}`:r.status==="busy"?"A pull is already running":`${r.new||0} new article${r.new===1?"":"s"} scanned`);
+    await loadLive(false); } catch(e){ toast("Pull failed"); } finally{ b.disabled=false; b.textContent="Pull now"; } };
+renderBadge(); renderMethod(); renderExport();
+loadLive(true);
+setInterval(()=>loadLive(false), 60000);
+</script>
+</body>
+</html>

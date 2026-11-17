@@ -17,23 +17,20 @@ without spending requests. "Pull now" simulates the next pull.
 
 ## Pages
 
-- **`/` — Signal Desk.** Overview brief, signal feed, lead pipeline, AI researcher, and the Method & data page.
-  Leads are built live from the news articles in `signals.db` (`app/desk.py`): each named person in a
-  medium- or high-confidence wealth event becomes a lead, merged across every article that names them.
-  Clicking a lead shows the article trail, a Wikipedia/Wikidata bio with spouse, parents and children,
-  heuristic factor ratings, and the standard playbook for that kind of signal.
-- **`/classic`** — the original single-table view of every article.
-- **`/concept`** — *Concept B*, a separate design exploration with **dummy data only**
-  (`static/concept/index.html`, no server data; it also opens by double-clicking the file). Stories split into
-  consignment signals (item, person, summary — research stops) and buy signals, which go through a Profile
-  Builder (Wikipedia, social media, museum APIs, Forbes, then Claude) that writes collecting tags gated by a
-  net-worth bar per tier ($500M+ blue-chip fine art, $50M+ fine art and major collecting, $5M+ luxury), plus
-  wealth and affiliation markers. Tabs: Overview, Signal feed (bulk-select rows), Profile builder, Export
-  table (CSV with bio, latest story, past stories, tags), Methods & data. Nothing in it is real.
+- **`/` — Signal Desk (live).** The concept layout (Overview, Signal feed, Pipeline, Profile builder,
+  Export table, Methods & data) fed by the real NewsAPI pulls, running on **free sources only**:
+  - NewsAPI free developer plan for the news
+  - Wikipedia and Wikidata for bios and recorded net worth
+  - The Met Collection API and the Cleveland Museum of Art Open Access API for credit lines
+    ("Gift of…", "Lent by…") and the departments of those works
 
-Things the desk does **not** invent: no value estimates (shown as "Not estimated" unless Wikidata has a net
-worth), and region/department are keyword guesses from the article text. The AI researcher needs
-`ANTHROPIC_API_KEY`. Pipeline stages are saved in your browser.
+  Tags are written by keyword rules in `app/live.py`; nothing calls Claude, X or Forbes while
+  `FREE_APIS_ONLY=true` (the default). Buy-signal people are looked up in the background (about six
+  free API calls each, `PROFILES_PER_PULL` per minute); the profile builder looks up any name on demand.
+  When no net worth is on record, collecting tags show dashed: the tier bar could not be checked.
+- **`/concept`** — the same layout with dummy data, for demos.
+- **`/desk`** — the first Signal Desk layout (lead scores, AI researcher).
+- **`/classic`** — the original single table of every article.
 
 ## How it works
 
