@@ -279,6 +279,53 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
   .modal{max-height:100vh;border-radius:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ---- Calendar ---- */
+.cal-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);gap:24px;align-items:start}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.cal-head h2{margin:0}
+.cal-nav{display:flex;gap:6px}
+.cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--rule);border-left:1px solid var(--rule)}
+.cal-dow{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);padding:6px 8px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper-2)}
+.cal-day{min-height:104px;padding:5px 5px 6px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper);display:flex;flex-direction:column;gap:3px;min-width:0}
+.cal-day.out{background:var(--paper-2)}
+.cal-day.out .d{color:var(--ink-3);opacity:.6}
+.cal-day .d{font-size:12px;color:var(--ink-2);padding:0 3px}
+.cal-day.today .d{color:var(--paper);background:var(--lapis);border-radius:10px;align-self:flex-start;padding:0 7px;font-weight:600}
+.ev{display:block;width:100%;text-align:left;border:0;border-left:3px solid var(--c,var(--lapis));background:var(--cs,var(--lapis-soft));color:var(--ink);font-size:11.5px;line-height:1.3;padding:3px 5px;border-radius:2px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev:hover{filter:brightness(.97)}
+.ev.cont{opacity:.55;font-style:italic}
+.ev.sel{outline:2px solid var(--ink);outline-offset:-1px}
+.ev.past{opacity:.6}
+.ev.k-sale{--c:var(--t1);--cs:var(--t1-soft)}
+.ev.k-week{--c:var(--wealth);--cs:var(--wealth-soft)}
+.ev.k-show{--c:var(--lapis);--cs:var(--lapis-soft)}
+.ev.k-prog{--c:var(--t3);--cs:var(--t3-soft)}
+.ev.k-car{--c:var(--consign);--cs:var(--consign-soft)}
+#calSeg{max-width:100%;overflow-x:auto;scrollbar-width:none}
+#calSeg button{white-space:nowrap}
+.cal-more{font-size:11px;color:var(--ink-3);background:none;border:0;padding:0 4px;text-align:left;cursor:pointer}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin:12px 0 0}
+.cal-legend span{display:inline-flex;align-items:center;gap:6px}
+.cal-legend i{width:10px;height:10px;border-radius:2px;background:var(--c);display:inline-block}
+.cal-ongoing{margin-top:22px}
+.cal-ongoing .ev{white-space:normal;font-size:13px;padding:7px 9px;margin-top:6px}
+.ev-detail h3{font-family:var(--serif);font-weight:500;font-size:23px;line-height:1.2;margin:6px 0 6px}
+.ev-meta{font-size:13.5px;color:var(--ink-2);margin:0 0 10px}
+.ev-kind{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--cs);color:var(--c)}
+.ev-top{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--wealth-soft);color:var(--wealth);margin-left:6px}
+.ev-detail h4{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:20px 0 6px}
+.ev-people li{grid-template-columns:1fr auto}
+.ev-why{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.ev-score{font-size:11px;color:var(--ink-3)}
+@media (max-width:960px){ .cal-grid{grid-template-columns:1fr} }
+@media (max-width:620px){
+  .cal-day{min-height:62px;padding:3px}
+  .cal-day .ev{font-size:0;padding:0;height:6px;border-left:0;background:var(--c)}
+  .cal-day .ev.cont{opacity:.35}
+  .cal-dow{padding:4px 3px;font-size:10px}
+  .cal-more{font-size:10px;padding:0}
+  .cal-more .mtxt{display:none}
+}
 </style>
 </head>
 <body>
@@ -290,6 +337,7 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
       <button class="tab" data-page="overview" aria-current="page">Overview</button>
       <button class="tab" data-page="feed">Signal feed</button>
       <button class="tab" data-page="pipeline">Pipeline <span class="badge" id="pipeBadge">0</span></button>
+      <button class="tab" data-page="calendar">Calendar</button>
       <button class="tab" data-page="builder">Profile builder</button>
       <button class="tab" data-page="export">Export table <span class="badge" id="expBadge">0</span></button>
       <button class="tab" data-page="method">Methods &amp; data</button>
@@ -368,6 +416,42 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
     <h1 class="pg">Pipeline</h1>
     <p class="lede">People you chose to follow, one card per person with every story about them, from first look to first contact. Nothing lands here on its own: select Track on the Overview or in a person's pop-up, or tick rows in the signal feed and select Add to pipeline.</p>
     <div class="board" id="board"></div>
+  </section>
+
+  <!-- CALENDAR -->
+  <section class="page" id="page-calendar">
+    <h1 class="pg">Calendar</h1>
+    <p class="lede">Sotheby's top sales and events for the 2026–27 season. Select an event to see the people on the desk whose collecting tags, markers and location fit it best, plus consignment leads whose items suit the sale.</p>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Event type" id="calSeg">
+        <button data-k="all" aria-pressed="true">All</button>
+        <button data-k="sale" aria-pressed="false">Sales</button>
+        <button data-k="week" aria-pressed="false">Collector weeks</button>
+        <button data-k="show" aria-pressed="false">Exhibitions</button>
+        <button data-k="car" aria-pressed="false">Cars</button>
+        <button data-k="prog" aria-pressed="false">Programmes</button>
+      </div>
+    </div>
+    <div class="cal-grid">
+      <div class="panel">
+        <div class="cal-head">
+          <h2 class="sec" id="calTitle"></h2>
+          <div class="cal-nav">
+            <button class="btn ghost sm" id="calPrev" aria-label="Previous month">←</button>
+            <button class="btn ghost sm" id="calToday">Today</button>
+            <button class="btn ghost sm" id="calNext" aria-label="Next month">→</button>
+          </div>
+        </div>
+        <div class="cal-month" id="calMonth"></div>
+        <div class="cal-legend">
+          <span style="--c:var(--t1)"><i></i>Sale</span><span style="--c:var(--wealth)"><i></i>Collector week</span>
+          <span style="--c:var(--lapis)"><i></i>Exhibition</span><span style="--c:var(--consign)"><i></i>Collector cars</span>
+          <span style="--c:var(--t3)"><i></i>Programme</span><span><i style="--c:var(--ink-3);opacity:.5"></i>Continues from an earlier day</span>
+        </div>
+        <div class="cal-ongoing" id="calOngoing"></div>
+      </div>
+      <div class="panel ev-detail" id="calDetail"><p class="placeholder">Select an event to see who to invite.</p></div>
+    </div>
   </section>
 
   <!-- PROFILE BUILDER -->
@@ -527,6 +611,7 @@ function savePipe(){ store.set("pipeline",PIPE); renderBadge(); }
 function setStage(id, stage){
   if(stage) PIPE[id]=stage; else delete PIPE[id];
   savePipe(); renderBoard(); renderOverview();
+  if(document.querySelector("#page-calendar.active")) renderEventDetail();
   if($("#scrim").classList.contains("on")) openPerson(id);
 }
 const stageLabel = id => (STAGES.find(s=>s.id===PIPE[id])||{}).label;
@@ -588,6 +673,7 @@ function go(p){
   document.querySelectorAll("section.page").forEach(s=>s.classList.toggle("active", s.id==="page-"+p));
   if(p==="export") renderExport();
   if(p==="pipeline") renderBoard();
+  if(p==="calendar") renderCalendar();
   window.scrollTo({top:0});
 }
 function renderBadge(){ $("#expBadge").textContent = EXPORT.size; $("#pipeBadge").textContent = Object.keys(PIPE).length; }
@@ -906,6 +992,176 @@ function renderMethod(){
 }
 
 /* =====================================================================
+   Calendar: Sotheby's top sales and events, 2026–27 season (from Sothebys_Top_Sales_Events_2026-27.xlsx).
+   cats = collecting categories the event sells or shows; city = where it happens (for location fit).
+   kind: sale | week (collector week) | show (exhibition) | car (RM Sotheby's) | prog (talks, valuation days)
+   ===================================================================== */
+const EVENTS = [
+  {id:"s1", top:1, kind:"sale", label:"Evening sale", name:"Vision: The Theodore & Ruth Baum Collection – Evening", desc:"Single-owner postwar American abstraction, Pop, Minimalism and Italian art. Top lots: Mitchell ($12–18M), Rothko ($10–15M), Ruscha 'Dimple' ($10–15M).", loc:"New York (945 Madison)", city:"ny", start:"2026-11-16", time:"6pm", cats:["contemporary","americana"], url:"https://www.sothebys.com/en/buy/auction/2026/vision-the-extraordinary-collection-of-theodore-and-ruth-baum-evening-auction"},
+  {id:"s2", top:2, kind:"sale", label:"Evening sale", name:"The Now & Contemporary Evening Auction", desc:"Flagship NY contemporary evening sale. Lichtenstein ($20–30M), Bacon 'Self-Portrait' and Kusama ($10–15M each), plus Senna's 1994 Williams FW16.", loc:"New York", city:"ny", start:"2026-11-16", time:"7pm", cats:["contemporary","british","cars"], url:"https://www.sothebys.com/en/buy/auction/2026/the-now-contemporary-evening-auction-2"},
+  {id:"s3", top:3, kind:"sale", label:"Evening sale", name:"Legendary: The Blaquier-Arrieta Collection – Evening", desc:"Museum-level Impressionism to early Fauvism, incl. Van Gogh, Cézanne, Pissarro.", loc:"New York", city:"ny", start:"2026-11-18", time:"6pm", cats:["impmod","latam"], url:"https://www.sothebys.com/en/buy/auction/2026/legendary-the-blaquier-arrieta-collection-evening-auction"},
+  {id:"s4", top:4, kind:"sale", label:"Evening sale", name:"Modern Evening Auction", desc:"Presented by CELINE. Armand Hammer Collection highlights; Picasso, Seurat, Magritte, Monet, Kahlo.", loc:"New York", city:"ny", start:"2026-11-18", time:"7pm", cats:["impmod","latam"], url:"https://www.sothebys.com/en/buy/auction/2026/modern-evening-auction-4"},
+  {id:"s5", top:5, kind:"sale", label:"Evening sale", name:"Une demeure princière, Part I – Vente du soir", desc:"Evening sale from the residence of Sheikh Hamad Bin Abdullah Al Thani; Parts II–V run 5–9 Nov.", loc:"Paris", city:"paris", start:"2026-11-04", time:"6pm", cats:["design","oldmasters","islamic"], url:"https://www.sothebys.com/en/buy/auction/2026/part-i-une-demeure-princiere-la-residence-de-son-altesse-cheikh-hamad-bin-abdullah-al-thani-vente-du-soir"},
+  {id:"s6", top:6, kind:"sale", label:"Single-owner sale", name:"Pauline Karpidas: The Jewelry Collection", desc:"70 jewels by JAR, Belperron, Cartier, Van Cleef & Arpels and others; ~$10M total estimate.", loc:"New York", city:"ny", start:"2026-12-08", time:"6pm", cats:["jewelry"], url:"https://www.sothebys.com/en/buy/auction/2026/pauline-karpidas-the-jewelry-collection"},
+  {id:"s7", top:7, kind:"sale", label:"Sale", name:"Important Watches", desc:"Main live watch sale of Geneva Luxury Week.", loc:"Geneva", city:"geneva", start:"2026-11-08", end:"2026-11-09", cats:["watches"], url:"https://www.sothebys.com/en/buy/auction/2026/important-watches-ge2604"},
+  {id:"s8", top:8, kind:"sale", label:"Evening sale", name:"Royal & Noble Jewels", desc:"Evening sale of jewels with royal and noble provenance; same day as High Jewelry.", loc:"Geneva", city:"geneva", start:"2026-11-11", time:"5pm", cats:["jewelry"], url:"https://www.sothebys.com/en/buy/auction/2026/royal-noble-jewelry-ge2609"},
+  {id:"s9", top:9, kind:"sale", label:"Sale", name:"Breaking Ground", desc:"Sotheby's first international fine art auction in Abu Dhabi: Warhol, Monet, Etel Adnan, S.H. Raza and leading Arab artists.", loc:"Abu Dhabi (Saadiyat Grove)", city:"gulf", start:"2026-12-10", cats:["contemporary","impmod","islamic","asian"], url:"https://canvasonline.com/sothebys-collectors-week-returns-to-abu-dhabi-featuring-first-fine-art-auction/"},
+  {id:"s10", top:10, kind:"sale", label:"Evening sale", name:"Old Master & 19th Century Paintings Evening", desc:"London December evening sale; lead lot so far Turner's 'Rome, from Mount Aventine'; consignments still open.", loc:"London", city:"london", start:"2026-12-09", cats:["oldmasters","british"], url:"https://www.sothebys.com/en/buy/auction/2026/old-master-19th-century-paintings-evening-auction-l26036/joseph-mallord-william-turner-rome-from-mount"},
+  {id:"e1", kind:"show", label:"Exhibition", name:"The New York Sales – public exhibition", desc:"Free viewing of the full November season; timed reservation required.", loc:"New York, 945 Madison (Breuer)", city:"ny", start:"2026-11-07", end:"2026-11-18", cats:["contemporary","impmod"], url:"https://www.sothebys.com/en/series/the-new-york-sales"},
+  {id:"e2", kind:"show", label:"Exhibition", name:"Vision: Baum Collection exhibition", desc:"Final stop of tour (London, Hong Kong, Paris, LA).", loc:"New York", city:"ny", start:"2026-11-07", end:"2026-11-15", cats:["contemporary","americana"], url:"https://www.sothebys.com/en/series/vision-the-extraordinary-collection-of-theodore-and-ruth-baum"},
+  {id:"e3", kind:"show", label:"Exhibition", name:"Legendary: Blaquier-Arrieta exhibition", desc:"Final stop of tour (London, Taipei, Hong Kong, Paris).", loc:"New York", city:"ny", start:"2026-11-07", end:"2026-11-17", cats:["impmod","latam"], url:"https://www.sothebys.com/en/series/legendary-the-blaquier-arrieta-collection"},
+  {id:"e4", kind:"show", label:"Exhibition", name:"Pauline Karpidas jewelry exhibition", desc:"Public viewing of the 70-piece collection. Sotheby's pages conflict on the start date (1 or 2 Dec).", loc:"New York", city:"ny", start:"2026-12-01", end:"2026-12-08", cats:["jewelry"], url:"https://www.sothebys.com/en/series/pauline-karpidas-jewelry-collection"},
+  {id:"e5", kind:"week", label:"Collector week", name:"Abu Dhabi Collectors' Week", desc:"Six sales (fine art, cars, jewelry, watches, handbags, bicycles); public previews from 4 Dec.", loc:"Abu Dhabi, Saadiyat Grove Experience Centre", city:"gulf", start:"2026-12-04", end:"2026-12-10", cats:["contemporary","impmod","cars","jewelry","watches","handbags","islamic"], url:"https://artdaily.com/news/201672/Sotheby-s-Collectors--Week-returns-to-Abu-Dhabi"},
+  {id:"e6", kind:"prog", label:"Programme", name:"Abu Dhabi talks & masterclasses", desc:"Panels and masterclasses with specialists and cultural figures; sessions not yet named. Dates to be confirmed.", loc:"Abu Dhabi", city:"gulf", start:null, when:"Dec 2026 (TBC)", cats:["islamic","contemporary"], url:"https://gulfnews.com/uae/abu-dhabi/sothebys-to-hold-first-international-fine-art-auction-in-abu-dhabi-1.500723894"},
+  {id:"e7", kind:"show", label:"Selling exhibition", name:"Ballet Mécanique by Jay Ahr", desc:"Rolls-Royce Corniches taken apart into 70,000+ parts, plus reworked Hermès, Louis Vuitton, Prouvé; ticketed.", loc:"Hong Kong, Sotheby's Maison", city:"hk", start:"2026-11-05", end:"2026-11-26", cats:["contemporary","design","cars","handbags"], url:"https://www.sothebys.com/en/digital-catalogues/ballet-mecanique"},
+  {id:"e8", kind:"week", label:"Collector week", name:"Geneva Luxury Week", desc:"Important Watches, High Jewelry, Royal & Noble Jewels.", loc:"Geneva", city:"geneva", start:"2026-11-05", end:"2026-11-11", cats:["watches","jewelry"], url:"https://www.sothebys.com/en/calendar"},
+  {id:"e9", kind:"show", label:"Exhibition", name:"Shapes of Cartier – preview display", desc:"Highlights from a ~50-watch single-owner Cartier collection, ahead of the Abu Dhabi sale.", loc:"Geneva, Mandarin Oriental", city:"geneva", start:"2026-11-05", end:"2026-11-07", cats:["watches","jewelry"], url:"https://artdaily.com/news/201672/Sotheby-s-Collectors--Week-returns-to-Abu-Dhabi"},
+  {id:"e10", kind:"week", label:"Collector week", name:"Une demeure princière (Al Thani residence)", desc:"Five-part series incl. Kunstkammer and Art Deco sales.", loc:"Paris", city:"paris", start:"2026-11-04", end:"2026-11-09", cats:["design","oldmasters","islamic"], url:"https://www.sothebys.com/en/buy/series/une-demeure-princiere-la-residence-de-son-altesse-cheikh-hamad-bin-abdullah-al-thani"},
+  {id:"e11", kind:"sale", label:"Charity sale", name:"166th Hospices de Beaune Wine Sale", desc:"Annual Burgundy charity wine sale run by Sotheby's.", loc:"Beaune, France", city:"paris", start:"2026-11-15", cats:["wine"], url:"https://www.sothebys.com/en/buy/auction/2026/166e-vente-des-vins-des-hospices-de-beaune-pf2612"},
+  {id:"e12", kind:"sale", label:"Collection sale", name:"L'ambition du goût – Périnet & Cailles", desc:"Collection sale: evening sale (1 Dec) and jewels sale (2 Dec).", loc:"Paris", city:"paris", start:"2026-12-01", end:"2026-12-02", cats:["design","jewelry"], url:"https://www.sothebys.com/en/buy/auction/2026/lambition-du-gout-collections-michel-perinet-et-francoise-cailles-vente-du-soir"},
+  {id:"e13", kind:"show", label:"Selling exhibition", name:"Global Views: Private Sales Highlights", desc:"Private-sale works across Sotheby's offices, refreshed regularly.", loc:"New York, Paris, Hong Kong, London", city:"ny paris hk london", start:null, when:"Ongoing (through 2027)", cats:["contemporary","impmod","oldmasters"], url:"https://www.sothebys.com/en/digital-catalogues/global-views-highlights-from-sothebys-private-sales"},
+  {id:"e14", kind:"prog", label:"Programme", name:"Meet a Specialist – valuation days", desc:"Walk-in valuations for jewelry, watches, handbags and couture; RSVP.", loc:"Paris, 83 Faubourg Saint-Honoré", city:"paris", start:null, when:"Every Thursday", weekly:4, cats:["jewelry","watches","handbags"], url:"https://www.sothebys.com/en/about/locations/paris"},
+  {id:"e15", kind:"prog", label:"Programme", name:"Galignani at Sotheby's", desc:"Talks, signings and workshops with Galignani bookshop.", loc:"Paris", city:"paris", start:null, when:"Throughout the year (no dates published)", cats:["books"], url:"https://www.sothebys.com/en/about/locations/paris"},
+  {id:"e16", kind:"prog", label:"Showcase", name:"TASCHEN at Sotheby's", desc:"TASCHEN book showcase in the London building.", loc:"London, New Bond Street", city:"london", start:null, when:"Ongoing", cats:["books","photos"], url:"https://www.sothebys.com/en/about/locations/london"},
+  {id:"e17", kind:"car", label:"Car auction", name:"RM Sotheby's – The Munich Auction", desc:"Live collector-car auction.", loc:"Munich", city:"munich", start:"2026-11-20", cats:["cars"], url:"https://rmsothebys.com/upcoming/"},
+  {id:"e18", kind:"car", label:"Car auction", name:"RM Sotheby's – Arizona week", desc:"Boeckmann Collection (28 Jan) and Arizona Auction (28–29 Jan).", loc:"Phoenix, AZ", city:"us-sw", start:"2027-01-28", end:"2027-01-29", cats:["cars"], url:"https://rmsothebys.com/upcoming/"},
+  {id:"e19", kind:"car", label:"Car auction", name:"RM Sotheby's – The Paris Auction", desc:"Early-February Paris collector-car sale.", loc:"Paris", city:"paris", start:"2027-02-03", cats:["cars"], url:"https://rmsothebys.com/upcoming/"},
+  {id:"e20", kind:"car", label:"Car auction", name:"RM Sotheby's – Florida (Cavallino + Miami)", desc:"Cavallino Auction, Boca Raton (20 Feb), then Miami Auction (26–27 Feb).", loc:"Boca Raton & Miami, FL", city:"florida", start:"2027-02-20", end:"2027-02-27", cats:["cars"], url:"https://rmsothebys.com/upcoming/"}
+];
+/* Where a person's role or bio puts them near an event. */
+const CITY_RX = {
+  ny:/new york|manhattan|brooklyn|greenwich|connecticut|hamptons|\bNYC?\b/i, paris:/paris|france|french|monaco|geneva|switzerland|london/i,
+  london:/london|britain|british|england|\bUK\b|united kingdom/i, geneva:/geneva|zurich|switzerland|swiss|monaco|gstaad|paris/i,
+  gulf:/abu dhabi|dubai|uae|emirat|qatar|doha|saudi|riyadh|kuwait|bahrain|gulf/i, hk:/hong kong|singapore|china|shanghai|beijing|taipei|taiwan|seoul|tokyo/i,
+  munich:/munich|germany|german|austria|vienna|zurich/i, "us-sw":/arizona|phoenix|scottsdale|texas|california|los angeles|las vegas|denver/i,
+  florida:/florida|miami|palm beach|boca raton|naples, fl/i
+};
+/* Words that tie a consignment item (or a marker such as "Watch collector") to a category. */
+const CAT_WORDS = {
+  contemporary:/contemporary|warhol|basquiat|rothko|richter|kusama|pop art|abstract|postwar|post-war|painting/i,
+  impmod:/impressionis|picasso|monet|van gogh|c[ée]zanne|matisse|modern art|degas|renoir/i, british:/turner|constable|british (art|paint)|gainsborough/i,
+  oldmasters:/old master|rembrandt|rubens|renaissance|baroque|19th[- ]century paint/i, asian:/chinese|japanese|asian|porcelain|jade|ming|qing/i,
+  latam:/latin american|kahlo|rivera|botero/i, islamic:/islamic|persian|ottoman|arab|middle east/i, african:/african/i,
+  photos:/photograph/i, design:/design|furniture|decorative|art deco|kunstkammer|silver|antique|interior/i, americana:/americana|american folk|quilt/i,
+  books:/book|manuscript|library|first edition|letters/i, jewelry:/jewel|diamond|necklace|ring|emerald|ruby|sapphire|cartier|tiara|pearl/i,
+  watches:/watch|patek|rolex|audemars|horolog/i, cars:/\bcars?\b|ferrari|porsche|bugatti|automobile|motor|racing/i,
+  wine:/wine|cellar|burgundy|bordeaux|whisk(e)?y|spirits/i, handbags:/handbag|herm[eè]s|birkin|kelly bag|chanel/i,
+  prints:/prints?\b|lithograph|multiples/i, sports:/sports|jersey|memorabilia/i, streetwear:/sneaker|streetwear/i
+};
+const KIND_NAME = {sale:"Sale", week:"Collector week", show:"Exhibition", car:"Collector cars", prog:"Programme"};
+const pDate = s => { if(!s) return null; const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+const dayKey = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+EVENTS.forEach(e=>{ e.s=pDate(e.start); e.e=pDate(e.end||e.start); });
+let calKind = "all", calSel = null;
+let calMonth = (()=>{ const t=new Date(); const next=EVENTS.filter(e=>e.e&&e.e>=new Date(t.getFullYear(),t.getMonth(),t.getDate())).sort((a,b)=>a.s-b.s)[0];
+  const d=next&&next.s>t ? next.s : t; return new Date(d.getFullYear(), d.getMonth(), 1); })();
+const evDates = e => !e.s ? e.when : e.e.getTime()===e.s.getTime()
+  ? e.s.toLocaleDateString([], {weekday:"short", day:"numeric", month:"short", year:"numeric"})+(e.time?", "+e.time:"")
+  : `${e.s.toLocaleDateString([], {day:"numeric", month:"short"})} – ${e.e.toLocaleDateString([], {day:"numeric", month:"short", year:"numeric"})}`;
+const evShown = e => calKind==="all" || e.kind===calKind;
+
+function renderCalendar(){
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  $("#calTitle").textContent = calMonth.toLocaleDateString([], {month:"long", year:"numeric"});
+  const first=new Date(y,m,1), start=new Date(y,m,1-((first.getDay()+6)%7));      // weeks start Monday
+  const today=dayKey(new Date());
+  const cells=[];
+  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(d=>cells.push(`<div class="cal-dow">${d}</div>`));
+  const weeks = Math.ceil((((first.getDay()+6)%7) + new Date(y,m+1,0).getDate())/7);
+  for(let i=0;i<weeks*7;i++){
+    const d=new Date(start.getFullYear(), start.getMonth(), start.getDate()+i), dow=(d.getDay()+6)%7;
+    const evs=EVENTS.filter(e=>evShown(e) && ((e.s && d>=e.s && d<=e.e) || (e.weekly && d.getDay()===e.weekly && d.getMonth()===m)))
+      .sort((a,b)=>(b.s&&dayKey(b.s)===dayKey(d))-(a.s&&dayKey(a.s)===dayKey(d)) || (a.top||99)-(b.top||99) || (a.s||0)-(b.s||0));
+    const past = d < new Date(new Date().setHours(0,0,0,0));
+    const chip = e => { const startsHere = !e.s || dayKey(e.s)===dayKey(d) || dow===0;
+      const cont = e.s && dayKey(e.s)!==dayKey(d);
+      return `<button class="ev k-${e.kind}${cont?" cont":""}${calSel===e.id?" sel":""}${past?" past":""}" data-event="${e.id}" title="${esc(e.name)} · ${esc(evDates(e))}">${startsHere||!cont?"":"↳ "}${esc(e.name)}</button>`; };
+    const max=3;
+    cells.push(`<div class="cal-day${d.getMonth()!==m?" out":""}${dayKey(d)===today?" today":""}"><span class="d num">${d.getDate()}</span>
+      ${evs.slice(0,max).map(chip).join("")}${evs.length>max?`<button class="cal-more" data-day="${d.toISOString()}">+${evs.length-max}<span class="mtxt"> more</span></button>`:""}</div>`);
+  }
+  $("#calMonth").innerHTML = cells.join("");
+  const undated = EVENTS.filter(e=>!e.s && evShown(e));
+  $("#calOngoing").innerHTML = undated.length ? `<h2 class="sec" style="font-size:17px;margin:0">Ongoing, recurring and dates to be confirmed</h2>
+    ${undated.map(e=>`<button class="ev k-${e.kind}${calSel===e.id?" sel":""}" data-event="${e.id}"><b>${esc(e.name)}</b> · ${esc(e.when)} · ${esc(e.loc)}</button>`).join("")}` : "";
+  const months = EVENTS.filter(e=>e.s).flatMap(e=>[e.s,e.e]);
+  const minM=new Date(Math.min(...months)), maxM=new Date(Math.max(...months));
+  $("#calPrev").disabled = y*12+m <= minM.getFullYear()*12+minM.getMonth();
+  $("#calNext").disabled = y*12+m >= maxM.getFullYear()*12+maxM.getMonth();
+  renderEventDetail();
+}
+
+/* Rank the desk's people for one event.
+   Buyers: collecting tags in the event's categories (cleared tier bar counts most), matching markers, location, then net worth.
+   Consignors: consignment stories whose item fits the event's categories (only for sales that have not happened yet). */
+function eventPeople(ev){
+  const buyers=[], consignors=[];
+  Object.keys(PEOPLE).forEach(id=>{
+    const p=PEOPLE[id]; if(!p) return;
+    const t=tagsOf(id), why=[]; let score=0;
+    ev.cats.forEach(k=>{
+      const hit = (arr, w, note) => { const x=(arr||[]).find(g=>g.key===k); if(x){ score+=w; why.push({label:x.label, tier:x.tier, unv:note==="unv", below:note==="below"}); return true; } };
+      hit(t.collecting,3) || hit(t.unknown,1.5,"unv") || hit(t.below,0.5,"below");
+    });
+    const marks = t.markers.filter(mk=>ev.cats.some(k=>CAT_WORDS[k] && CAT_WORDS[k].test(mk.label)));
+    marks.forEach(mk=>{ score+=1.5; why.push({label:mk.label, kind:mk.kind}); });
+    if(score>0){
+      const near = ev.city.split(" ").some(c=>CITY_RX[c] && CITY_RX[c].test(`${p.role||""} ${p.short_bio||p.bio||""}`));
+      if(near) score+=1;
+      buyers.push({id, score, why, near, worth:p.worth||0});
+    }
+    if(p.signal==="consign"){
+      const items=storiesOf(id).map(s=>s.item).filter(Boolean).filter(it=>ev.cats.some(k=>CAT_WORDS[k].test(it)));
+      if(items.length) consignors.push({id, items:[...new Set(items)]});
+    }
+  });
+  buyers.sort((a,b)=>b.score-a.score || b.worth-a.worth);
+  return {buyers:buyers.slice(0,10), consignors:consignors.slice(0,6)};
+}
+
+function renderEventDetail(){
+  const ev=EVENTS.find(e=>e.id===calSel), box=$("#calDetail");
+  if(!ev){ box.innerHTML=`<p class="placeholder">Select an event to see who to invite.</p>`; return; }
+  const {buyers, consignors} = eventPeople(ev);
+  const upcoming = !ev.e || ev.e >= new Date(new Date().setHours(0,0,0,0));
+  const catTags = ev.cats.map(k=>CATS[k]?`<span class="tag ${TIERS[CATS[k].tier].cls}" title="${esc(TIERS[CATS[k].tier].label)}: ${money(TIERS[CATS[k].tier].min)}+ net worth">${esc(CATS[k].label)}</span>`:"").join("");
+  const whyHtml = w => w.kind ? `<span class="tag ${w.kind}">${esc(w.label)}</span>`
+    : `<span class="tag ${w.below?"below":TIERS[w.tier].cls}${w.unv?" unv":""}" title="${w.below?"Below the net-worth bar for this tier":w.unv?"Net worth unknown: tier bar not checked":"Clears the net-worth bar"}">${esc(w.label)}</span>`;
+  box.innerHTML = `
+    <span class="ev-kind" style="--c:var(--${{sale:"t1",week:"wealth",show:"lapis",car:"consign",prog:"t3"}[ev.kind]});--cs:var(--${{sale:"t1",week:"wealth",show:"lapis",car:"consign",prog:"t3"}[ev.kind]}-soft)">${esc(ev.label)}</span>${ev.top?`<span class="ev-top">Top 10 sale · #${ev.top}</span>`:""}
+    <h3>${esc(ev.name)}</h3>
+    <p class="ev-meta">${esc(evDates(ev))} · ${esc(ev.loc)}${upcoming?"":" · <b>Past</b>"}</p>
+    <p style="margin:0 0 10px">${esc(ev.desc)}</p>
+    <p style="margin:0"><a class="lnk" href="${esc(ev.url)}" target="_blank" rel="noopener noreferrer">Event page ↗</a></p>
+    <h4>Who it's for</h4><div class="tags">${catTags}</div>
+    <h4>Most relevant people (${buyers.length})</h4>
+    ${buyers.length?`<ul class="mini ev-people">${buyers.map(b=>{ const p=PEOPLE[b.id];
+      return `<li data-person="${esc(b.id)}" tabindex="0"><div><div class="m-name">${esc(p.name)}</div>
+        <div class="tags" style="margin-top:5px">${b.why.map(whyHtml).join("")}</div>
+        <div class="ev-why">${esc(p.role||"")}${b.near?` · <b>Near ${esc(ev.loc.split(/[,(]/)[0].trim())}</b>`:""}</div></div>
+        <div class="m-right num"><b>${money(p.worth)}</b><div class="note">net worth</div>${trackBtn(b.id)}</div></li>`; }).join("")}</ul>`
+      : `<p class="note">No one on the desk has a collecting tag or marker in these categories yet. Build profiles for buy signals to fill this in.</p>`}
+    ${(upcoming && ev.kind!=="prog" && consignors.length) ? `<h4>Consignment leads that fit this sale (${consignors.length})</h4>
+      <ul class="mini">${consignors.map(c=>`<li data-person="${esc(c.id)}" tabindex="0"><div><div class="m-name">${esc(PEOPLE[c.id].name)}</div>
+        <div class="m-sub">${c.items.map(esc).join("; ")}</div></div><div class="m-right">${trackBtn(c.id)}</div></li>`).join("")}</ul>` : ""}
+    <p class="note" style="margin-top:14px">Ranked by collecting tags in the event's categories (solid tags clear the net-worth bar and count most), matching markers, and whether they are based near the venue, then by net worth.</p>`;
+}
+
+document.addEventListener("click",e=>{
+  const ev=e.target.closest("[data-event]");
+  if(ev){ e.preventDefault(); calSel=ev.dataset.event; renderCalendar();
+    if(window.matchMedia("(max-width:960px)").matches) $("#calDetail").scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  const more=e.target.closest("[data-day]");
+  if(more){ const d=new Date(more.dataset.day); const evs=EVENTS.filter(x=>evShown(x)&&x.s&&d>=x.s&&d<=x.e);
+    more.outerHTML = evs.slice(3).map(x=>`<button class="ev k-${x.kind}${x.s&&dayKey(x.s)!==dayKey(d)?" cont":""}" data-event="${x.id}" title="${esc(x.name)}">${esc(x.name)}</button>`).join(""); }
+});
+$("#calPrev").onclick=()=>{ calMonth=new Date(calMonth.getFullYear(), calMonth.getMonth()-1, 1); renderCalendar(); };
+$("#calNext").onclick=()=>{ calMonth=new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 1); renderCalendar(); };
+$("#calToday").onclick=()=>{ const t=new Date(); calMonth=new Date(t.getFullYear(), t.getMonth(), 1); renderCalendar(); };
+document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calKind=b.dataset.k;
+  document.querySelectorAll("#calSeg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); renderCalendar(); });
+
+/* =====================================================================
    Init
    ===================================================================== */
 $("#resetBtn").onclick=()=>{ EXPORT.clear(); picked.clear(); PIPE={}; store.set("pipeline",{}); renderBoard(); Object.keys(CUSTOM).forEach(k=>{ delete PEOPLE[k]; delete CUSTOM[k]; }); store.set("custom",{}); saveExport();
@@ -922,6 +1178,7 @@ async function loadLive(first){
     ingest(d); STATUS=st; renderStatus();
     renderBadge(); renderOverview(); initTagFilter(); renderFeed(); renderBoard(); renderPicker();
     if(document.querySelector("#page-export.active")) renderExport();
+    if(document.querySelector("#page-calendar.active")) renderCalendar();
   }catch(e){
     if(first){ $("#briefText").textContent = "Couldn't reach the local server. Start it with python3 server.py, then reload."; $("#hdrMeta").textContent="Offline"; }
   }
@@ -930,7 +1187,7 @@ $("#pullNow").onclick = async () => { const b=$("#pullNow"); b.disabled=true; b.
   try{ const r=await (await fetch("/api/pull",{method:"POST"})).json();
     toast(r.status==="quota"?"Daily request limit reached":r.status==="error"?`Pull failed: ${r.message}`:r.status==="busy"?"A pull is already running":`${r.new||0} new article${r.new===1?"":"s"} scanned`);
     await loadLive(false); } catch(e){ toast("Pull failed"); } finally{ b.disabled=false; b.textContent="Pull now"; } };
-renderBadge(); renderMethod(); renderExport();
+renderBadge(); renderMethod(); renderExport(); renderCalendar();
 loadLive(true);
 setInterval(()=>loadLive(false), 60000);
 </script>

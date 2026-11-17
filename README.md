@@ -38,6 +38,10 @@ without spending requests. "Pull now" simulates the next pull.
   `FREE_APIS_ONLY=true` (the default). Buy-signal people are looked up in the background (about six
   free API calls each, `PROFILES_PER_PULL` per minute); the profile builder looks up any name on demand.
   When no net worth is on record, collecting tags show dashed: the tier bar could not be checked.
+  The **Calendar** tab lists Sotheby's top sales and events for 2026–27 (from
+  `Sothebys_Top_Sales_Events_2026-27.xlsx`; edit the `EVENTS` list in the page to change them). Select
+  an event to rank the desk's people by collecting tags in the event's categories, matching markers and
+  location, with consignment leads whose items fit upcoming sales.
 - **`/concept`** — the same layout with dummy data, for demos.
 - **`/desk`** — the first Signal Desk layout (lead scores, AI researcher).
 - **`/classic`** — the original single table of every article.
