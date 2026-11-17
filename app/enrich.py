@@ -14,7 +14,9 @@ from . import db
 
 log = logging.getLogger(__name__)
 
-UA = {"User-Agent": "WealthSignalMonitor/0.1 (local research tool)"}
+from . import config
+
+UA = {"User-Agent": f"SignalDesk/0.3 ({config.CONTACT}; MIT EMS Lab research prototype) python-requests"}
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 WIKI_SUMMARY = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"

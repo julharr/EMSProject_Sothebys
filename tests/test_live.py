@@ -82,6 +82,20 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(by_person["p:ann lee"]["event"], "IPO")
         self.assertTrue(people["p:ann lee"]["pending"])                    # not looked up yet
 
+    def test_short_bio_and_facts(self):
+        wiki = {"found": True, "bio": "Jane Roe (born 1950) is an American investor. She founded Roe Capital Inc. in 1980. She collects art.",
+                "born": "1950-03-04", "occupations": ["investor"], "net_worth": "$2.5B (2024)",
+                "family": {"spouses": [{"name": "John Roe"}], "children": [{"name": "A"}, {"name": "B"}]}}
+        prof = live.build_tags("Jane Roe", wiki, {"credits": []}, {"credits": []}, [], None)
+        self.assertEqual(prof["short_bio"], "Jane Roe is an American investor. She founded Roe Capital Inc. in 1980.")
+        self.assertEqual(dict(prof["bio_facts"]), {"Born": "1950", "Occupation": "investor", "Net worth": "$2.5B (2024)",
+                                                   "Spouse": "John Roe", "Children": "2"})
+        self.assertIsNone(live.build_tags("X Y", {"found": False}, {"credits": []}, {"credits": []}, [], None)["short_bio"])
+
+    def test_requests_identify_the_tool_with_a_contact(self):
+        from app import enrich
+        self.assertIn(config.CONTACT, enrich.UA["User-Agent"])
+
     def test_item_and_event_helpers(self):
         self.assertEqual(live.items_in("Heirs battle over $4 billion estate"), "Not named in coverage")
         self.assertEqual(live.buy_event("Corvane agrees to buy Lumen for $4B"), "Company sale")

@@ -124,6 +124,41 @@ def buy_event(text):
     return next((label for rx, label in BUY_EVENT_LABELS if re.search(rx, text, re.I)), "Liquidity event")
 
 
+_ABBREV = r"(?:Mr|Mrs|Ms|Dr|Jr|Sr|St|Inc|Co|Corp|Ltd|No|vs|etc|U\.S|U\.K|e\.g|i\.e|[A-Z])\."
+
+
+def short_bio(text, sentences=2):
+    """First sentences of a Wikipedia intro, without splitting on 'Jr.', 'Inc.', 'U.S.' or initials."""
+    if not text:
+        return None
+    t = re.sub(r"\s*\([^()]*\)", "", text).strip()                 # drop parentheticals (birth dates, pronunciations)
+    protected = re.sub(_ABBREV, lambda m: m.group(0).replace(".", "\u2024"), t)
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z\u201c\"])", protected)
+    out = " ".join(parts[:sentences]).replace("\u2024", ".")
+    return re.sub(r"\s{2,}", " ", out)
+
+
+def bio_facts(wiki):
+    """Key Wikidata facts (CC0) as short label/value pairs."""
+    if not wiki.get("found"):
+        return []
+    f = []
+    if wiki.get("born"):
+        f.append(["Born", wiki["born"][:4]])
+    if wiki.get("died"):
+        f.append(["Died", wiki["died"][:4]])
+    if wiki.get("occupations"):
+        f.append(["Occupation", ", ".join(wiki["occupations"][:3])])
+    if wiki.get("net_worth"):
+        f.append(["Net worth", wiki["net_worth"]])
+    fam = wiki.get("family") or {}
+    if fam.get("spouses"):
+        f.append(["Spouse", ", ".join(p["name"] for p in fam["spouses"][:2])])
+    if fam.get("children"):
+        f.append(["Children", str(len(fam["children"]))])
+    return f
+
+
 def parse_worth(label):
     """'$2.5B (2024)' -> 2.5e9; '$450M' -> 4.5e8; anything else -> None."""
     m = re.match(r"\$([\d.]+)\s*([BM])", label or "")
@@ -257,6 +292,8 @@ def build_tags(name, wiki, met, cma, story_texts, ham=None):
 
     return {
         "bio": wiki.get("bio") if wiki.get("found") else None,
+        "short_bio": short_bio(wiki.get("bio")) if wiki.get("found") else None,
+        "bio_facts": bio_facts(wiki),
         "wikipedia_url": wiki.get("wikipedia_url"),
         "worth": worth, "worthLabel": worth_label, "worthSource": worth_src,
         "find": find, "tags": tags, "credits": credits[:8],

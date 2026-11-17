@@ -43,6 +43,9 @@ DEMO_MODE = not NEWSAPI_KEY
 # even if ANTHROPIC_API_KEY is set. Set FREE_APIS_ONLY=false to allow the paid Claude features.
 FREE_APIS_ONLY = os.getenv("FREE_APIS_ONLY", "true").lower() not in ("0", "false", "no")
 USE_CLAUDE = bool(ANTHROPIC_API_KEY) and not FREE_APIS_ONLY
+# Contact sent with every Wikipedia/Wikidata/museum request (Wikimedia asks automated tools for one).
+# Set CONTACT to an email or URL you're happy to share; defaults to the project's GitHub page.
+CONTACT = os.getenv("CONTACT", "https://github.com/julharr/EMSProject_Sothebys").strip()
 # Harvard Art Museums API (free key from harvardartmuseums.org/collections/api). Optional.
 HARVARD_API_KEY = os.getenv("HARVARD_API_KEY", "").strip()
 # How many people the background profile builder looks up per pull (each is ~6 free API calls).

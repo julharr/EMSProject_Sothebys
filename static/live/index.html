@@ -561,6 +561,16 @@ function tagsOf(id){
 }
 const tagHtml = t => t.tier ? `<span class="tag ${TIERS[t.tier].cls}${t.unv?" unv":""}" title="${esc(TIERS[t.tier].label)}${t.unv?": net worth unknown, tier bar not checked":""}">${esc(t.label)}</span>`
                             : `<span class="tag ${t.kind}">${esc(t.label)}</span>`;
+const CC_BY_SA = "https://creativecommons.org/licenses/by-sa/4.0/";
+/* Short bio: first two sentences of the Wikipedia intro + Wikidata facts, credited as the licenses require. */
+function bioBlock(p){
+  if(!p.short_bio) return `<p class="note" style="margin:0">No Wikipedia page found. Likely a private individual, so research by hand.</p>`;
+  const facts = (p.bio_facts||[]).map(([k,v])=>`<span>${esc(k)}</span><b>${esc(v)}</b>`).join("");
+  return `<p style="margin:0">${esc(p.short_bio)}</p>
+    ${facts?`<div class="facts">${facts}</div>`:""}
+    <p class="note" style="margin:8px 0 0">From <a class="lnk" href="${esc(p.wikipedia_url||"#")}" target="_blank" rel="noopener noreferrer">Wikipedia</a> (text <a class="lnk" href="${CC_BY_SA}" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>) and Wikidata (facts, CC0). Verify before outreach.</p>`;
+}
+const csvBio = p => p.short_bio ? `${p.short_bio} (Source: Wikipedia, CC BY-SA 4.0, ${p.wikipedia_url||""})` : "";
 const shownTags = t => [...t.collecting, ...t.unknown];
 const allTagLabels = id => { const t=tagsOf(id); return [...shownTags(t).map(x=>x.label), ...t.markers.map(x=>x.label)]; };
 /* Consignment stories show no event label (no "Death", "Divorce", "Debt"); buy stories keep theirs (IPO, Company sale...). */
@@ -685,8 +695,8 @@ function openPerson(id){
   const color = s => s.signal==="consign"?"var(--consign)":"var(--buy)";
   const body = p.pending ? `<h4>Bio</h4><p class="stop-note" style="background:var(--buy-soft)">Profile is being built from free sources in the background. Check back in a minute, or open the profile builder now.</p>`
     : p.signal==="buy" || p.tags ? `
-      <h4>Bio</h4><p style="margin:0">${p.bio?esc(p.bio):`<span class="note">No Wikipedia page found. Likely a private individual.</span>`}</p>
-      <div class="facts"><span>Net worth</span><b class="num">${esc(p.worthLabel||"Unknown")}</b>${p.wikipedia_url?`<span>Source</span><b><a class="lnk" href="${esc(p.wikipedia_url)}" target="_blank" rel="noopener noreferrer">Wikipedia</a></b>`:""}</div>
+      <h4>Bio</h4>${bioBlock(p)}
+      ${(p.bio_facts||[]).some(f=>f[0]==="Net worth")?"":`<div class="facts"><span>Net worth</span><b class="num">${esc(p.worthLabel||"Unknown")}</b></div>`}
       <h4>Tags</h4>
       <div class="tags">${shownTags(t).map(tagHtml).join("")}${t.markers.map(tagHtml).join("")}${!shownTags(t).length&&!t.markers.length?`<span class="note">No tags from free sources yet.</span>`:""}</div>
       ${t.below.length?`<p class="note" style="margin:8px 0 0">Below the net-worth bar: ${t.below.map(x=>esc(x.label)).join(", ")}</p>`:""}`
@@ -815,6 +825,7 @@ function renderProfile(id){
   $("#pbOut").innerHTML = `
     <div class="prof-head"><div><h2 class="prof-name">${esc(p.name)}</h2><p class="prof-role">${esc(p.role)}</p></div>
       <div>${sigPill(p.signal)}</div></div>
+    <div class="tag-group"><h5>Who they are</h5>${bioBlock(p)}</div>
     <div class="nw">
       <div class="nw-top"><span class="note">Net worth · ${esc(p.worthLabel||"Unknown")}</span><b class="num">${money(p.worth)}</b></div>
       <div class="nw-bar" role="img" aria-label="Net worth ${money(p.worth)} on a scale from $1M to $10B">
@@ -824,7 +835,7 @@ function renderProfile(id){
       <div class="nw-legend"><span><i style="background:var(--t3-soft);border:1px solid var(--t3)"></i>${tierName(3)} from $5M</span><span><i style="background:var(--t2-soft);border:1px solid var(--t2)"></i>${tierName(2)} from $50M</span><span><i style="background:var(--t1-soft);border:1px solid var(--t1)"></i>${tierName(1)} from $500M</span></div>
     </div>
     <p class="claude-note">${p.worth==null?`No net worth on record, so the tier bar can't be checked. ${t.unknown.length?`Evidence found for ${t.unknown.map(x=>x.label).join(", ")}.`:"No collecting evidence found yet."}`:t.collecting.length?`Strongest fit: ${strongest.join(", ")} (${esc(TIERS[t.collecting[0].tier].label.toLowerCase())}). ${t.collecting.length} collecting tag${t.collecting.length===1?" clears":"s clear"} the net-worth bar at ${money(p.worth)}.`:t.below.length?`Collecting interests found, but none clear the net-worth bar at ${money(p.worth)} yet.`:`No collecting evidence found in free sources yet.`}${t.below.length?` ${t.below.map(x=>x.label).join(", ")} ${t.below.length===1?"has":"have"} evidence but sit${t.below.length===1?"s":""} below the bar for ${t.below.length===1?"its":"their"} tier.`:""} <span class="note">(keyword rules, no AI)</span></p>
-    <div class="tag-group"><h5>Collecting</h5><div class="tag-list">${shownTags(t).map(row).join("")||`<p class="note">${p.worth==null?"No collecting evidence found.":"None clear the bar."}</p>`}</div></div>
+    <div class="tag-group"><h5>Collecting</h5><div class="tag-list">${shownTags(t).map(row).join("")||`<p class="note">${p.worth!=null&&t.below.length?"None clear the bar.":"No collecting evidence found."}</p>`}</div></div>
     ${t.below.length?`<div class="tag-group"><h5>Evidence below the net-worth bar</h5><div class="tag-list">${t.below.map(x=>`<div class="tag-row"><div><span class="tag below">${esc(x.label)}</span></div><div class="why">Needs ${money(TIERS[x.tier].min)} for ${esc(TIERS[x.tier].label.toLowerCase())} · ${esc(x.why||"")}</div></div>`).join("")}</div></div>`:""}
     <div class="tag-group"><h5>Wealth and affiliation</h5><div class="tag-list">${t.markers.map(row).join("")||`<p class="note">None found.</p>`}</div></div>
     ${(p.credits||[]).length?`<div class="tag-group"><h5>Museum credit lines</h5><ul class="prev">${p.credits.map(c=>`<li><div class="d">${esc(c.museum)} · ${esc(c.department||"")}</div><div>${c.url?`<a class="lnk" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.title||"Untitled")}</a>`:esc(c.title||"Untitled")}: ${esc(c.credit||"")}</div></li>`).join("")}</ul></div>`:""}
@@ -858,7 +869,7 @@ function renderExport(){
   $("#expBody").innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><div class="p-name" style="cursor:pointer" data-person="${esc(r.id)}">${esc(r.p.name)}</div><div class="note">${esc(r.p.role)}</div></td>
       <td>${sigPill(r.p.signal)}</td>
-      <td class="small">${r.p.bio?esc(r.p.bio):`<span class="note">Not researched (consignment)</span>`}</td>
+      <td class="small">${r.p.short_bio?`${esc(r.p.short_bio)}<div class="note">Wikipedia, CC BY-SA 4.0</div>`:`<span class="note">${r.p.signal==="consign"&&!r.p.tags?"Not researched (consignment)":"No Wikipedia page found"}</span>`}</td>
       <td class="small">${r.now?`<b>${esc(r.now.headline)}</b><div class="note">${fmtDate(r.now.published)} · ${esc(r.now.source)}</div>${r.now.item?`<div>Item: ${esc(r.now.item)}</div>`:""}`:`<span class="note">None</span>`}</td>
       <td class="small">${r.past.length?r.past.map(s=>`<div>${esc(fmtDate(s.published))}: ${esc(s.headline)}</div>`).join(""):`<span class="note">None</span>`}</td>
       <td><div class="tags">${r.tagObjs.map(tagHtml).join("")||`<span class="note">None</span>`}</div></td>
@@ -870,7 +881,7 @@ $("#csvBtn").onclick=()=>{
   const rows=exportRows(); if(!rows.length) return;
   const head=["Name","Role","Signal type","Net worth","Net worth basis","Bio","Most recent story date","Most recent story","Most recent story summary","Item (consignment)","Past stories","Tags"];
   const lines=[head.map(csvCell).join(",")].concat(rows.map(r=>[
-    r.p.name, r.p.role, r.p.signal==="consign"?"Consignment":"Buy", r.p.worth!=null?money(r.p.worth):"", r.p.worthLabel||"", r.p.bio||"",
+    r.p.name, r.p.role, r.p.signal==="consign"?"Consignment":"Buy", r.p.worth!=null?money(r.p.worth):"", r.p.worthLabel||"", csvBio(r.p),
     r.now?r.now.published.toISOString().slice(0,10):"", r.now?r.now.headline:"", r.now?r.now.summary:"", r.now&&r.now.item?r.now.item:"",
     r.past.map(storyLine).join(" | "), r.tags.join("; ")
   ].map(csvCell).join(",")));
