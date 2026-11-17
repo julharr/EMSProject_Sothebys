@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from app import config, db, demo_data, desk, enrich, live, pipeline, research
+from app import config, db, demo_data, desk, edgar, enrich, live, pipeline, research
 from app.taxonomy import EVENT_NAMES, TAG_NAMES, WEALTH_EVENTS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -159,6 +159,9 @@ def bootstrap():
     else:
         pipeline.start_scheduler()
         live.start_worker()
+        if edgar.start_worker():
+            logging.info("SEC EDGAR: watching Form 4 insider sales over $%s (every %d min)",
+                         f"{config.EDGAR_MIN_SALE_USD:,.0f}", config.EDGAR_INTERVAL_MINUTES)
         logging.info("Live mode: pulling every %d min (classifier: %s)",
                      config.PULL_INTERVAL_MINUTES, "claude" if config.USE_CLAUDE else "rules")
 

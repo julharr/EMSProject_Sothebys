@@ -39,6 +39,20 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 CREATE INDEX IF NOT EXISTS idx_articles_fetched ON articles(fetched_at DESC);
 CREATE INDEX IF NOT EXISTS idx_articles_event ON articles(event_type);
+CREATE TABLE IF NOT EXISTS sec_seen (
+    accession TEXT PRIMARY KEY,
+    seen_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sec_insiders (
+    accession TEXT NOT NULL,
+    name_key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    issuer TEXT, ticker TEXT, role TEXT,
+    sale_value REAL, holdings_value REAL,
+    filed_at TEXT, url TEXT,
+    PRIMARY KEY (accession, name_key)
+);
+CREATE INDEX IF NOT EXISTS idx_sec_insiders_name ON sec_insiders(name_key);
 CREATE TABLE IF NOT EXISTS people (
     name_key TEXT PRIMARY KEY,
     data TEXT NOT NULL,

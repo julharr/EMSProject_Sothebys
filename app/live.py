@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 
-from . import config, db, enrich, museums
+from . import config, db, edgar, enrich, museums
 from .enrich import name_key
 
 log = logging.getLogger(__name__)
@@ -232,7 +232,7 @@ def fetch_sources(name):
 MUSEUM_SRC = {"The Met": "met", "Cleveland Museum of Art": "cleveland", "Harvard Art Museums": "harvard"}
 
 
-def build_tags(name, wiki, met, cma, story_texts, ham=None):
+def build_tags(name, wiki, met, cma, story_texts, ham=None, sec=None):
     ham = ham or {"credits": [], "error": None if config.HARVARD_API_KEY else "Not set up (add HARVARD_API_KEY to .env)"}
     news = " ".join(story_texts)
     bio = " ".join(filter(None, [wiki.get("bio"), wiki.get("description"), " ".join(wiki.get("occupations") or [])])) if wiki.get("found") else ""
@@ -249,6 +249,20 @@ def build_tags(name, wiki, met, cma, story_texts, ham=None):
         tags.append(["wealth", "Described as a billionaire", ["news"]])
     else:
         worth_label, worth_src = "Unknown", None
+
+    # SEC Form 4: stock still held after a sale is a floor on wealth; use it when it beats the above.
+    sec = edgar.insiders_for(name) if sec is None else sec
+    if sec:
+        top = max(sec, key=lambda r: r.get("holdings_value") or 0)
+        held = top.get("holdings_value") or 0
+        if held and (worth is None or (worth_src != "wikipedia" and held > worth)):
+            tk = top.get("ticker") or top.get("issuer")
+            worth, worth_label, worth_src = held, f"{edgar.money(held)}+ in {tk} stock · SEC Form 4", "sec"
+        for r in sec[:3]:
+            tk = r.get("ticker") or r.get("issuer")
+            tags.append(["wealth", f"Insider sale: {edgar.money(r.get('sale_value') or 0)} of {tk} (SEC Form 4, {str(r.get('filed_at'))[:10]})", ["sec"]])
+        for role, issuer in dict.fromkeys((r.get("role"), r.get("issuer")) for r in sec):
+            tags.append(["aff", f"{role} at {issuer}", ["sec"]])
 
     # Collecting categories: museum departments first (strongest evidence), then text.
     by_cat = {}
@@ -287,6 +301,8 @@ def build_tags(name, wiki, met, cma, story_texts, ham=None):
     find["met"] = [f"{c.get('credit')} ({c.get('department')})" for c in met.get("credits") or []][:4] or [met.get("error") or "No credit lines naming them"]
     find["cleveland"] = [f"{c.get('credit')} ({c.get('department')})" for c in cma.get("credits") or []][:4] or [cma.get("error") or "No credit lines naming them"]
     find["harvard"] = [f"{c.get('credit')} ({c.get('department')})" for c in ham.get("credits") or []][:4] or [ham.get("error") or "No credit lines naming them"]
+    find["sec"] = [f"{r.get('role')}, {r.get('issuer')}: sold {edgar.money(r.get('sale_value') or 0)}, still holds {edgar.money(r.get('holdings_value') or 0)} ({str(r.get('filed_at'))[:10]})"
+                   for r in sec][:4] or ["No Form 4 insider sales on file"]
     find["news"] = [f"{len(story_texts)} stor{'y' if len(story_texts) == 1 else 'ies'} on file"] if story_texts else ["No stories pulled for this name"]
     find["rules"] = [f"{len(tags)} tags from keyword rules (no AI)"]
 

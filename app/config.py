@@ -46,6 +46,12 @@ USE_CLAUDE = bool(ANTHROPIC_API_KEY) and not FREE_APIS_ONLY
 # Contact sent with every Wikipedia/Wikidata/museum request (Wikimedia asks automated tools for one).
 # Set CONTACT to an email or URL you're happy to share; defaults to the project's GitHub page.
 CONTACT = os.getenv("CONTACT", "https://github.com/julharr/EMSProject_Sothebys").strip()
+# SEC EDGAR (free, no key): insider sales from Form 4 filings become buy signals.
+# The SEC requires a User-Agent with contact details: set CONTACT to an email address.
+EDGAR_ENABLED = os.getenv("EDGAR_ENABLED", "true").lower() not in ("0", "false", "no")
+EDGAR_INTERVAL_MINUTES = int(os.getenv("EDGAR_INTERVAL_MINUTES", "10"))
+EDGAR_MIN_SALE_USD = float(os.getenv("EDGAR_MIN_SALE_USD", "5000000"))
+EDGAR_BACKFILL_DAYS = int(os.getenv("EDGAR_BACKFILL_DAYS", "3"))
 # Harvard Art Museums API (free key from harvardartmuseums.org/collections/api). Optional.
 HARVARD_API_KEY = os.getenv("HARVARD_API_KEY", "").strip()
 # How many people the background profile builder looks up per pull (each is ~6 free API calls).

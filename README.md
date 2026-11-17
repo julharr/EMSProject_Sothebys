@@ -24,6 +24,10 @@ without spending requests. "Pull now" simulates the next pull.
   - The Met Collection API, the Cleveland Museum of Art Open Access API and the Harvard Art Museums
     API (free key in `HARVARD_API_KEY`) for credit lines ("Gift of…", "Lent by…") and the departments
     of those works
+  - SEC EDGAR Form 4 filings (free, no key): an insider's open-market stock sale of $5M or more
+    (`EDGAR_MIN_SALE_USD`) becomes a buy-signal story, and the stock they still hold sets a floor on
+    their net worth. Checked every 10 minutes, with the last 3 days of filings read on first start.
+    The SEC asks for an email in the User-Agent, so set `CONTACT=you@example.com` in `.env`.
 
   For The Met, a local copy of its Open Access dataset ([metmuseum/openaccess](https://github.com/metmuseum/openaccess),
   CC0, ~340 MB) is faster and searches credit lines directly: run `python3 -m app.met_local` once (or
