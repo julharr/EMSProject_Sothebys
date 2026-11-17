@@ -116,3 +116,22 @@ class HarvardTests(unittest.TestCase):
         prof = live.build_tags("Jane Roe", {"found": False}, {"credits": []}, {"credits": []}, [], {"credits": got})
         self.assertIn(["asian", ["harvard"]], [t[:2] for t in prof["tags"]])
         self.assertIn("Museum lender (Harvard Art Museums)", [t[1] for t in prof["tags"] if t[0] == "aff"])
+
+
+class MetLocalTests(unittest.TestCase):
+    def test_index_and_search_credit_lines(self):
+        from app import met_local
+        path = os.path.join(tempfile.mkdtemp(), "MetObjects.csv")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("Object Number,Object ID,Department,Title,Classification,Credit Line,Link Resource\n"
+                    '1,1,Asian Art,Bowl,Ceramics,"Gift of Jane and John Roe, 2019",https://m/1\n'
+                    '2,2,Photographs,Street,Photographs,"Promised Gift of Jane Roe",https://m/2\n'
+                    '3,3,Asian Art,Jar,Ceramics,"Gift of Ann Lee, 2001",https://m/3\n'
+                    '4,4,Asian Art,Cup,Ceramics,,https://m/4\n')
+        self.assertEqual(met_local.build_index(path), 3)          # rows without a credit line are skipped
+        got = museums.met("Jane Roe")
+        self.assertTrue(got["local"])
+        self.assertEqual(sorted(c["title"] for c in got["credits"]), ["Bowl", "Street"])
+        self.assertEqual({c["kind"] for c in got["credits"]}, {"donor", "lender"})
+        with db.connect() as c:                                    # leave other tests on the API path
+            c.execute("DROP TABLE IF EXISTS met_fts"); c.execute("DROP TABLE IF EXISTS met_objects")

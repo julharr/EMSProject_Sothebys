@@ -25,6 +25,11 @@ without spending requests. "Pull now" simulates the next pull.
     API (free key in `HARVARD_API_KEY`) for credit lines ("Gift of…", "Lent by…") and the departments
     of those works
 
+  For The Met, a local copy of its Open Access dataset ([metmuseum/openaccess](https://github.com/metmuseum/openaccess),
+  CC0, ~340 MB) is faster and searches credit lines directly: run `python3 -m app.met_local` once (or
+  `python3 -m app.met_local --csv path/to/MetObjects.csv` if you already cloned it with `git lfs clone`).
+  Without it, the desk falls back to the Met API.
+
   Tags are written by keyword rules in `app/live.py`; nothing calls Claude, X or Forbes while
   `FREE_APIS_ONLY=true` (the default). Buy-signal people are looked up in the background (about six
   free API calls each, `PROFILES_PER_PULL` per minute); the profile builder looks up any name on demand.

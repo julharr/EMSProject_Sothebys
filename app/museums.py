@@ -82,6 +82,15 @@ def _cached(prefix, name, fetch):
 
 
 def met(name):
+    # Local Open Access copy first (python3 -m app.met_local): instant, no API calls, searches credit lines.
+    from . import met_local
+    if met_local.available():
+        credits = [{"museum": "The Met", "title": o["title"],
+                    "department": o["department"] + (f" ({o['classification']})" if (o.get("classification") or "").lower() in ("photographs", "prints") else ""),
+                    "credit": o["credit"], "kind": _kind(o["credit"]), "url": o["url"]}
+                   for o in met_local.search(name) if _names_person(o["credit"], name)][:MAX_OBJECTS]
+        return {"credits": credits, "local": True}
+
     def fetch(n):
         ids = (_get(MET_SEARCH, q=f'"{n}"') or {}).get("objectIDs") or []
         credits = []
