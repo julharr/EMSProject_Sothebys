@@ -301,6 +301,7 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
 .ev.k-show{--c:var(--lapis);--cs:var(--lapis-soft)}
 .ev.k-prog{--c:var(--t3);--cs:var(--t3-soft)}
 .ev.k-car{--c:var(--consign);--cs:var(--consign-soft)}
+.cal-up{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
 #calSeg{max-width:100%;overflow-x:auto;scrollbar-width:none}
 #calSeg button{white-space:nowrap}
 .cal-more{font-size:11px;color:var(--ink-3);background:none;border:0;padding:0 4px;text-align:left;cursor:pointer}
@@ -421,7 +422,7 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
   <!-- CALENDAR -->
   <section class="page" id="page-calendar">
     <h1 class="pg">Calendar</h1>
-    <p class="lede">Sotheby's top sales and events for the 2026–27 season. Select an event to see the people on the desk whose collecting tags, markers and location fit it best, plus consignment leads whose items suit the sale.</p>
+    <p class="lede">Sotheby's top sales and events for the 2026–27 season. Select an event to see the people on the desk whose collecting tags, markers and location fit it best, plus consignment leads whose items suit the sale. Upload a CSV to add more events; anything already on the calendar is skipped.</p>
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Event type" id="calSeg">
         <button data-k="all" aria-pressed="true">All</button>
@@ -430,6 +431,12 @@ footer button{background:none;border:0;color:var(--ink-3);text-decoration:underl
         <button data-k="show" aria-pressed="false">Exhibitions</button>
         <button data-k="car" aria-pressed="false">Cars</button>
         <button data-k="prog" aria-pressed="false">Programmes</button>
+      </div>
+      <div class="cal-up">
+        <button class="btn sm" id="calUpload">Upload events (CSV)</button>
+        <input type="file" id="calFile" accept=".csv,text/csv" hidden>
+        <button class="btn ghost sm" id="calTemplate">CSV template</button>
+        <button class="btn ghost sm" id="calClearUploads">Remove uploaded</button>
       </div>
     </div>
     <div class="cal-grid">
@@ -1073,7 +1080,7 @@ function renderCalendar(){
   const weeks = Math.ceil((((first.getDay()+6)%7) + new Date(y,m+1,0).getDate())/7);
   for(let i=0;i<weeks*7;i++){
     const d=new Date(start.getFullYear(), start.getMonth(), start.getDate()+i), dow=(d.getDay()+6)%7;
-    const evs=EVENTS.filter(e=>evShown(e) && ((e.s && d>=e.s && d<=e.e) || (e.weekly && d.getDay()===e.weekly && d.getMonth()===m)))
+    const evs=EVENTS.filter(e=>evShown(e) && ((e.s && d>=e.s && d<=e.e) || (e.weekly!=null && !e.s && d.getDay()===e.weekly && d.getMonth()===m)))
       .sort((a,b)=>(b.s&&dayKey(b.s)===dayKey(d))-(a.s&&dayKey(a.s)===dayKey(d)) || (a.top||99)-(b.top||99) || (a.s||0)-(b.s||0));
     const past = d < new Date(new Date().setHours(0,0,0,0));
     const chip = e => { const startsHere = !e.s || dayKey(e.s)===dayKey(d) || dow===0;
@@ -1131,12 +1138,12 @@ function renderEventDetail(){
   const whyHtml = w => w.kind ? `<span class="tag ${w.kind}">${esc(w.label)}</span>`
     : `<span class="tag ${w.below?"below":TIERS[w.tier].cls}${w.unv?" unv":""}" title="${w.below?"Below the net-worth bar for this tier":w.unv?"Net worth unknown: tier bar not checked":"Clears the net-worth bar"}">${esc(w.label)}</span>`;
   box.innerHTML = `
-    <span class="ev-kind" style="--c:var(--${{sale:"t1",week:"wealth",show:"lapis",car:"consign",prog:"t3"}[ev.kind]});--cs:var(--${{sale:"t1",week:"wealth",show:"lapis",car:"consign",prog:"t3"}[ev.kind]}-soft)">${esc(ev.label)}</span>${ev.top?`<span class="ev-top">Top 10 sale · #${ev.top}</span>`:""}
+    <span class="ev-kind" style="--c:var(--${{sale:"t1",week:"wealth",show:"lapis",car:"consign",prog:"t3"}[ev.kind]});--cs:var(--${{sale:"t1",week:"wealth",show:"lapis",car:"consign",prog:"t3"}[ev.kind]}-soft)">${esc(ev.label)}</span>${ev.top?`<span class="ev-top">Top 10 sale · #${ev.top}</span>`:""}${ev.uploaded?`<span class="ev-top" style="background:var(--lapis-soft);color:var(--lapis)">Uploaded</span>`:""}
     <h3>${esc(ev.name)}</h3>
     <p class="ev-meta">${esc(evDates(ev))} · ${esc(ev.loc)}${upcoming?"":" · <b>Past</b>"}</p>
     <p style="margin:0 0 10px">${esc(ev.desc)}</p>
-    <p style="margin:0"><a class="lnk" href="${esc(ev.url)}" target="_blank" rel="noopener noreferrer">Event page ↗</a></p>
-    <h4>Who it's for</h4><div class="tags">${catTags}</div>
+    <p style="margin:0">${ev.url?`<a class="lnk" href="${esc(ev.url)}" target="_blank" rel="noopener noreferrer">Event page ↗</a>`:""}${ev.uploaded?` <button class="btn ghost sm" data-unevent="${esc(ev.id)}" style="margin-left:10px">Remove this event</button>`:""}</p>
+    <h4>Who it's for</h4><div class="tags">${catTags || `<span class="note">No collecting category recognised. Add a Categories column (for example "Jewelry; Watches") and upload again.</span>`}</div>
     <h4>Most relevant people (${buyers.length})</h4>
     ${buyers.length?`<ul class="mini ev-people">${buyers.map(b=>{ const p=PEOPLE[b.id];
       return `<li data-person="${esc(b.id)}" tabindex="0"><div><div class="m-name">${esc(p.name)}</div>
@@ -1163,6 +1170,147 @@ $("#calNext").onclick=()=>{ calMonth=new Date(calMonth.getFullYear(), calMonth.g
 $("#calToday").onclick=()=>{ const t=new Date(); calMonth=new Date(t.getFullYear(), t.getMonth(), 1); renderCalendar(); };
 document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calKind=b.dataset.k;
   document.querySelectorAll("#calSeg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); renderCalendar(); });
+
+/* =====================================================================
+   Calendar upload: add events from a CSV. Rows that match an event already on the calendar
+   (same name, same link, or same start date with a near-identical name) are skipped.
+   Columns (header names are flexible): Name, Description, Location, Date, Link,
+   plus optional Type, Categories ("Jewelry; Watches"), Start and End (YYYY-MM-DD), Time.
+   Uploaded events are kept in this browser.
+   ===================================================================== */
+const MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const DAYS = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+const LOC_RX = [["ny",/new york|manhattan|\bnyc?\b/i],["london",/london/i],["geneva",/geneva|zurich|switzerland/i],
+  ["paris",/paris|france|beaune|monaco/i],["gulf",/abu dhabi|dubai|doha|qatar|riyadh|saudi|uae/i],["hk",/hong kong|taipei|singapore|shanghai|beijing|tokyo|seoul/i],
+  ["munich",/munich|germany|vienna/i],["us-sw",/arizona|phoenix|scottsdale|las vegas|los angeles|california|pebble beach|monterey/i],["florida",/florida|miami|palm beach|boca raton/i]];
+
+function parseCSV(text){
+  text = text.replace(/^﻿/, "");
+  const first = text.split(/\r?\n/)[0] || "";
+  const delim = (first.match(/;/g)||[]).length > (first.match(/,/g)||[]).length ? ";" : (first.includes("\t") && !first.includes(",") ? "\t" : ",");
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; continue; }
+    if(c==='"') q=true;
+    else if(c===delim){ row.push(cell); cell=""; }
+    else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n") i++; row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if(cell||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.some(x=>x.trim()));
+}
+
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+/* "16 Nov 2026, 6pm", "7–18 Nov 2026", "28 Nov – 3 Dec 2026", "Nov 16, 2026", "2026-11-16", "11/16/2026",
+   "Every Thursday", "Dec 2026 (TBC)" -> {start, end, time, weekly, when} */
+function parseWhen(raw){
+  const s=(raw||"").replace(/[–—]/g,"-").trim(), out={when:raw||"Date to be confirmed"};
+  const tm=s.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i); if(tm) out.time=tm[1].replace(/\s+/g,"");
+  const ev=s.match(/\bevery\s+(sun|mon|tue|wed|thu|fri|sat)/i); if(ev){ out.weekly=DAYS[ev[1].toLowerCase()]; return out; }
+  const mk=(y,m,d)=>{ const t=new Date(+y,m,+d); return isNaN(t)||t.getDate()!==+d ? null : ymd(t); };
+  let m;
+  if((m=s.match(/(\d{4})-(\d{2})-(\d{2})(?:\s*(?:-|to)\s*(\d{4})-(\d{2})-(\d{2}))?/))){
+    out.start=mk(m[1],m[2]-1,m[3]); if(m[4]) out.end=mk(m[4],m[5]-1,m[6]); }
+  else if((m=s.match(/(\d{1,2})(?:\/\d{1,2})?(?:\s*-\s*(\d{1,2}))?\s+([a-z]{3,9})\.?(?:\s*-\s*(\d{1,2})\s+([a-z]{3,9})\.?)?,?\s+(\d{4})/i)) && MONTHS[m[3].slice(0,3).toLowerCase()]!=null){
+    const m1=MONTHS[m[3].slice(0,3).toLowerCase()], m2=m[5]?MONTHS[m[5].slice(0,3).toLowerCase()]:m1, y=+m[6];
+    out.start=mk(m2<m1?y-1:y,m1,m[1]); if(m[4]) out.end=mk(y,m2,m[4]); else if(m[2]) out.end=mk(y,m1,m[2]); }
+  else if((m=s.match(/([a-z]{3,9})\.?\s+(\d{1,2})(?:\s*-\s*(\d{1,2}))?,?\s+(\d{4})/i)) && MONTHS[m[1].slice(0,3).toLowerCase()]!=null){
+    const mo=MONTHS[m[1].slice(0,3).toLowerCase()]; out.start=mk(m[4],mo,m[2]); if(m[3]) out.end=mk(m[4],mo,m[3]); }
+  else if((m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4}))?/))){
+    out.start=mk(m[3],m[1]-1,m[2]); if(m[4]) out.end=mk(m[6],m[4]-1,m[5]); }
+  if(out.end && out.start && out.end<out.start) delete out.end;
+  return out;
+}
+
+function guessKind(type, name, desc){
+  const lead=(desc.match(/^([^:]{3,40}):/)||[])[1]||"";
+  const t=`${type} ${lead}`.toLowerCase(), all=`${t} ${name} ${desc}`.toLowerCase();
+  const pick = s => /car auction|collector-car|rm sotheby|\bcars?\b|motor/.test(s) ? "car"
+    : /collector week|luxury week|\bweek\b|series/.test(s) ? "week"
+    : /exhibition|showcase|display|viewing|preview/.test(s) ? "show"
+    : /programme|program|talk|masterclass|valuation|signing|workshop|lecture|dinner|reception/.test(s) ? "prog"
+    : /auction|sale|vente/.test(s) ? "sale" : null;
+  return pick(t) || pick(name.toLowerCase()) || pick(all) || "sale";
+}
+function guessCats(catsCol, text){
+  const keys=[];
+  (catsCol||"").split(/[;|,\/]+/).map(x=>x.trim().toLowerCase()).filter(Boolean).forEach(w=>{
+    const k=Object.keys(CATS).find(k=>k===w || CATS[k].label.toLowerCase()===w || CATS[k].label.toLowerCase().includes(w));
+    if(k && !keys.includes(k)) keys.push(k); });
+  if(keys.length) return keys;
+  Object.keys(CATS).forEach(k=>{ if(CAT_WORDS[k] && CAT_WORDS[k].test(text)) keys.push(k); });
+  if(!keys.length && /fine art|masterpieces?|paintings?/i.test(text)) keys.push("contemporary","impmod");
+  return keys;
+}
+
+const evNorm = s => (s||"").normalize("NFKD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[–—-]/g," ").replace(/[^a-z0-9 ]+/g,"").replace(/\s+/g," ").trim();
+const evToks = s => new Set(evNorm(s).split(" ").filter(w=>w.length>2 && !["the","and","sale","auction","evening","day"].includes(w)));
+function isDuplicate(ev, list){
+  return list.some(o=>{
+    if(evNorm(o.name)===evNorm(ev.name)) return true;
+    if(ev.url && o.url && o.url.replace(/[?#].*$/,"").replace(/\/$/,"")===ev.url.replace(/[?#].*$/,"").replace(/\/$/,"") && (o.start||"")===(ev.start||"")) return true;
+    if(ev.start && o.start===ev.start){ const a=evToks(ev.name), b=evToks(o.name);
+      const inter=[...a].filter(x=>b.has(x)).length; return inter/Math.max(1, Math.min(a.size,b.size)) >= 0.75; }
+    return false;
+  });
+}
+
+function rowsToEvents(rows){
+  const head=rows[0].map(h=>h.trim().toLowerCase());
+  const col = (...names) => head.findIndex(h=>names.some(n=>h===n || h.startsWith(n)));
+  const ix={name:col("name","title","event"), desc:col("description","desc","details","summary"), loc:col("location","venue","city","place"),
+    date:col("date","dates","when"), url:col("link","url","website"), type:col("type","kind","format"), cats:col("categories","category","collecting","department"),
+    start:col("start"), end:col("end"), time:col("time")};
+  if(ix.name<0) throw new Error("The CSV needs a Name column");
+  const get=(r,k)=>ix[k]>=0 ? (r[ix[k]]||"").trim() : "";
+  return rows.slice(1).map(r=>{
+    const name=get(r,"name"); if(!name) return null;
+    const desc=get(r,"desc"), loc=get(r,"loc"), when=parseWhen(get(r,"date"));
+    const st=get(r,"start")?parseWhen(get(r,"start")).start:when.start, en=get(r,"end")?parseWhen(get(r,"end")).start:when.end;
+    const kind=guessKind(get(r,"type"), name, desc);
+    return {id:"u"+Math.abs([...evNorm(name)+(st||"")].reduce((h,c)=>(h*31+c.charCodeAt(0))|0,7)).toString(36), uploaded:true,
+      kind, label:get(r,"type") || (desc.match(/^([^:]{3,40}):/)||[])[1] || KIND_NAME[kind], name,
+      desc:desc.replace(/^[^:]{3,40}:\s*/,""), loc:loc||"Location to be confirmed",
+      city:LOC_RX.filter(([,rx])=>rx.test(loc)).map(([k])=>k).join(" "), start:st||null, end:en||null,
+      time:get(r,"time")||when.time, weekly:when.weekly, when:st?undefined:(when.weekly!=null?get(r,"date"):when.when),
+      cats:guessCats(get(r,"cats"), `${name} ${desc}`), url:get(r,"url")};
+  }).filter(Boolean);
+}
+
+function addEvents(list){
+  list.forEach(e=>{ e.s=pDate(e.start); e.e=pDate(e.end||e.start); EVENTS.push(e); });
+}
+let UPLOADED = store.get("uploadedEvents", []);
+addEvents(UPLOADED);
+const saveUploaded = () => store.set("uploadedEvents", UPLOADED.map(({s,e,...rest})=>rest));
+
+$("#calUpload").onclick=()=>$("#calFile").click();
+$("#calFile").onchange=async ev=>{
+  const f=ev.target.files[0]; ev.target.value=""; if(!f) return;
+  try{
+    const rows=parseCSV(await f.text()); if(rows.length<2) throw new Error("The file has no rows");
+    const incoming=rowsToEvents(rows), added=[]; let dup=0;
+    incoming.forEach(e=>{ if(isDuplicate(e, EVENTS.concat(added))) dup++; else added.push(e); });
+    addEvents(added); UPLOADED=UPLOADED.concat(added); saveUploaded();
+    const undated=added.filter(e=>!e.start && e.weekly==null).length;
+    if(added.length){ const firstDated=added.filter(e=>e.s).sort((a,b)=>a.s-b.s)[0];
+      if(firstDated) calMonth=new Date(firstDated.s.getFullYear(), firstDated.s.getMonth(), 1); calSel=added[0].id; }
+    renderCalendar();
+    toast(`Added ${added.length} new event${added.length===1?"":"s"}${dup?`, skipped ${dup} already on the calendar`:""}${undated?` (${undated} without a date are listed under the calendar)`:""}`);
+  }catch(err){ toast(`Couldn't read that CSV: ${err.message}`); }
+};
+$("#calTemplate").onclick=()=>{
+  const csv='Name,Description,Location,Date,Link,Type,Categories\n"Example: Magnificent Jewels","Spring jewelry sale","Geneva","12 May 2027, 5pm","https://www.sothebys.com/","Sale","Jewelry"\n';
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="calendar_events_template.csv"; a.click(); };
+function removeUploaded(id){
+  UPLOADED=UPLOADED.filter(e=>e.id!==id); saveUploaded();
+  const i=EVENTS.findIndex(e=>e.id===id); if(i>=0) EVENTS.splice(i,1);
+  if(calSel===id) calSel=null; renderCalendar();
+}
+$("#calClearUploads").onclick=()=>{ if(!UPLOADED.length){ toast("No uploaded events to remove"); return; }
+  const n=UPLOADED.length; [...UPLOADED].forEach(e=>removeUploaded(e.id)); toast(`Removed ${n} uploaded event${n===1?"":"s"}`); };
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-unevent]"); if(b){ removeUploaded(b.dataset.unevent); toast("Event removed"); } });
 
 /* =====================================================================
    Init
