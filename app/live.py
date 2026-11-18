@@ -61,11 +61,14 @@ AFFILIATION_RULES = [
     (r"wine collect|vineyard|winery", "Wine collector"),
 ]
 BUY_EVENT_LABELS = [
-    (r"\bipo\b|goes public|went public|listing|lists on", "IPO"),
-    (r"acquir|buyout|merger|agrees? to (buy|acquire)|sells? (his|her|their) (company|firm|business)|sale of", "Company sale"),
-    (r"\bstake\b|shares|secondary", "Share sale"),
+    (r"\bipo\b|goes public|go public|went public|public debut|market debut|listing|lists on|\bspac\b", "IPO"),
+    (r"funding round|raises? \$|series [a-f]\b|valued at", "Funding round"),
+    (r"(net worth|fortune|wealth) (soars|surges|jumps|climbs|rises|doubles|tops|hits)|becomes? (a )?billionaire|new billionaire|richest", "Fortune jump"),
+    (r"acquir|buyout|merger|agrees? to (buy|acquire)|sells? (a |the |his |her |their )?(company|firm|business|startup)|sale of", "Company sale"),
+    (r"\bstake\b|shares|secondary|cash(es|ed)? out|tender offer", "Share sale"),
     (r"dividend|payout|windfall|settlement", "Payout"),
-    (r"buys? .{0,40}(home|house|mansion|estate|penthouse|apartment|villa)", "New property"),
+    (r"(buys?|bought|snaps up|purchas\w*) .{0,40}(home|house|mansion|estate|penthouse|apartment|villa|ranch|island)", "New property"),
+    (r"(buys?|bought|snaps up|purchas\w*) .{0,40}(yacht|jet|team|franchise)", "New purchase"),
 ]
 ITEM_RULES = [
     (r"jewel|diamond|sapphire|emerald|pearl", "Jewelry"),
@@ -185,11 +188,51 @@ def parse_worth(label):
 
 # --- stories and people ------------------------------------------------------------------
 
+def _tokens(name):
+    return re.findall(r"[a-z0-9]+", rtb.norm(name))
+
+
+def canonical_names(names):
+    """Map each name to the form the desk should show, merging variants of the same person:
+    'Inside Jensen Huang' and 'Jensen H Huang' -> 'Jensen Huang' (the most common, else shortest, form)."""
+    counts = {}
+    for n in names:
+        counts[n] = counts.get(n, 0) + 1
+    forms = sorted(counts, key=lambda n: (-counts[n], len(n)))
+    canon = {}
+    for n in sorted(counts, key=len):
+        t = _tokens(n)
+        target = n
+        for m in forms:
+            u = _tokens(m)
+            if m == n or len(u) < 2 or len(u) > len(t):
+                continue
+            suffix = t[-len(u):] == u                                   # "inside jensen huang" ends with "jensen huang"
+            first_last = len(u) == 2 and t[0] == u[0] and t[-1] == u[-1]   # "jensen h huang" ~ "jensen huang"
+            if suffix or first_last or t == u:
+                target = canon.get(m, m)
+                break
+        canon[n] = target
+    return canon
+
+
+def _is_person(person):
+    """False when a Wikipedia lookup showed the 'name' is a company, product or place ('Cash App')."""
+    hit = db.get_person(name_key(person["name"]))
+    return not (hit and hit.get("not_person"))
+
+
 def stories_and_people():
     stories, people = [], {}
+    arts = []
     for a in _articles():
+        named = [p for p in a["people"] if _is_person(p)]
+        if named:
+            arts.append((a, named))
+    canon = canonical_names([p["name"] for _, named in arts for p in named])
+    for a, named in arts:
         text = f"{a['title']}. {a.get('description') or ''}"
-        principal = a["people"][0]
+        principal = {**named[0], "name": canon.get(named[0]["name"], named[0]["name"])}
         pid = "p:" + name_key(principal["name"])
         signal = "buy" if a["event_type"] in BUY_EVENTS else "consign"
         stories.append({

@@ -29,6 +29,11 @@ KNOWN_NON_PEOPLE = [
     "Warner Bros", "Louis Vuitton", "Christian Dior", "Harry Winston", "Van Cleef", "Rolls-Royce", "Aston Martin",
     "Ernst & Young", "Bain Capital", "Sotheby's", "Christie's", "Phillips", "Bonhams", "Associated Press",
     "Federal Reserve", "Wall Street Journal", "New York Times", "Washington Post", "Financial Times",
+    "Cash App", "Home Depot", "Whole Foods", "General Motors", "General Electric", "Fox News", "Bloomberg News",
+    "Dow Jones", "Trader Joe's", "Under Armour", "Estée Lauder", "Estee Lauder", "Saint Laurent", "Yves Saint Laurent",
+    "Formula One", "Premier League", "Champions League", "Super Bowl", "World Cup", "Grand Prix", "Art Basel",
+    "Frieze London", "Met Gala", "Hermès Birkin", "Patek Philippe", "Audemars Piguet", "Vacheron Constantin",
+    "Richard Mille", "Van Cleef & Arpels", "Bottega Veneta", "Brunello Cucinelli", "Loro Piana", "Ralph Lauren Corp",
 ]
 _MASK_RX = re.compile(r"\b(?:" + "|".join(re.escape(x) for x in sorted(KNOWN_NON_PEOPLE, key=len, reverse=True)) + r")\b")
 
@@ -49,12 +54,17 @@ FUNCTION_WORDS = set("""
 the a an and or but in on at for to of from with by as after before over under into amid about against near
 says said dies dead died sells sold buys bought lists listed files filed seeks wins loses is are was were will
 has have had who what why how new top former late breaking exclusive opinion report update watch live photos video
+inside meet behind here here's heres look listen analysis interview profile review podcast explainer see when where
+this that these those can could should would did does do just now latest first last big more most ex than via
+sell buy sees bets plans plan gets takes makes eyes hits faces jumps soars surges falls drops slams raises nears
+joins leaves quits steps names unveils launches reveals warns sues backs adds cuts pays wants becomes hires fires
 """.split())
 ORG_WORDS = set("""
 inc corp corporation co company group bank capital partners holdings fund funds foundation trust university college
 institute museum gallery galleries news times post journal exchange committee council court senate congress resorts
 hotels hotel media energy airlines motors technologies technology labs ventures industries brands studios records
-payments broadcasting line lines shipping logistics pharma pharmaceuticals systems networks software bancorp
+payments broadcasting line lines shipping app apps pay wallet coin coins token cloud chat gpt store stores
+platform platforms airways airline cruises cruise motorsports racing logistics pharma pharmaceuticals systems networks software bancorp
 securities advisors management associates llc ltd plc ag sa reserve department agency office club team estate estates
 auction auctions sale sales collection market markets fed party administration ministry
 """.split())
@@ -104,6 +114,11 @@ def _cue_before(text, start):
 
 def _bare(word):
     return re.sub(r"['’]s$", "", word)
+
+
+def _person_ref(surname, text):
+    """The text treats the surname as a person: 'Guo, 30,' / 'Huang said' / 'Whitmore, who built'."""
+    return re.search(rf"\b{re.escape(surname)}(?:,\s*\d{{1,3}}\s*,|\s+(?:said|says|told|added|who|whose|has|had|was|is|will)\b|,\s+(?:who|whose)\b|['’]s\s+(?:wife|husband|son|daughter|children|family|company|fortune|stake|net worth|estate)\b)", text) is not None
 
 
 def _mentioned(word, text):
@@ -159,10 +174,15 @@ def extract(title, description, limit=4):
                     # Headline in Title Case: trust only names the description confirms, or a cued 2-word name.
                     anchors = [i for i, w in enumerate(words)
                                if not re.fullmatch(PARTICLE, w) and _mentioned(_bare(w), other)]
-                    if anchors and anchors[-1] >= 1:
+                    confirmed = len(anchors) >= 2 or (anchors and _person_ref(_bare(words[anchors[-1]]), other))
+                    adj_cue = cue if re.search(rf"\b{re.escape(cue or '#')}\.?\s*$", seg[:start], re.I) else None
+                    if anchors and anchors[-1] >= 1 and (confirmed or adj_cue):
                         last = anchors[-1]
                         words = words[max(0, last - 2):last + 1]
-                    elif cue and len(real) >= 2:
+                        # "Inside Jensen Huang": drop leading words the description never uses
+                        while len(words) > 2 and not _mentioned(_bare(words[0]), other):
+                            words = words[1:]
+                    elif adj_cue and len(real) >= 2:
                         words = words[:2]
                     else:
                         continue

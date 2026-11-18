@@ -62,9 +62,18 @@ def _lookup(name):
                       languages="en", format="json")["entities"][qid]
         claims = entity.get("claims", {})
         if "Q5" not in _item_ids(claims, "P31"):
+            if _same_name(name, title):
+                # The page with exactly this name is a company, app, place... ("Cash App"): not a person.
+                what = (entity.get("descriptions", {}).get("en") or {}).get("value") or summary.get("description") or "not a person"
+                return {"name": name, "found": False, "not_person": True, "what": what}
             continue
         return _build(name, title, summary, claims)
     return {"name": name, "found": False}
+
+
+def _same_name(name, title):
+    norm = lambda s: re.sub(r"\s*\(.*?\)", "", s).lower().strip()
+    return norm(name) == norm(title)
 
 
 def _name_matches(name, title):

@@ -64,7 +64,8 @@ CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
 
 # Query used for /v2/everything pulls. NewsAPI caps q at 500 chars.
 EVERYTHING_QUERY = (
-    '(billionaire OR heir OR heiress OR tycoon OR mogul OR magnate OR dynasty OR "family fortune" OR collector) AND '
-    '(dies OR died OR obituary OR divorce OR bankruptcy OR "chapter 11" OR debt OR estate OR inheritance OR '
-    'auction OR "estate sale" OR succession OR lawsuit OR sells OR IPO)'
+    '(billionaire OR heir OR heiress OR tycoon OR mogul OR magnate OR dynasty OR "family fortune" OR collector OR '
+    'founder OR "co-founder") AND (dies OR died OR obituary OR divorce OR bankruptcy OR "chapter 11" OR debt OR '
+    'estate OR inheritance OR auction OR succession OR sells OR sold OR IPO OR "goes public" OR stake OR acquired OR '
+    'acquisition OR "funding round" OR valuation OR "net worth" OR buys OR bought OR "record price")'
 )

@@ -190,15 +190,19 @@ def get_article(article_id):
         return _article_row(row) if row else None
 
 
-def refresh_rule_people(extract):
-    """Re-run name extraction on keyword-classified articles (cheap, local); returns how many changed."""
+def refresh_rule_people(classify):
+    """Re-run the keyword classifier (tags, event, people) on stored rules-classified articles, so
+    improvements to the rules apply to everything already pulled. Cheap and local; returns how many changed."""
     changed = 0
     with _lock, connect() as conn:
-        rows = conn.execute("SELECT id, title, description, people FROM articles WHERE classifier='rules'").fetchall()
+        rows = conn.execute("""SELECT id, title, description, tags, event_type, event_confidence, people
+                               FROM articles WHERE classifier='rules'""").fetchall()
         for r in rows:
-            new = json.dumps(extract({"title": r["title"], "description": r["description"]}))
-            if new != r["people"]:
-                conn.execute("UPDATE articles SET people=? WHERE id=?", (new, r["id"]))
+            c = classify({"title": r["title"], "description": r["description"]})
+            new = (json.dumps(c["tags"]), c["event_type"], c["event_confidence"], c["event_rationale"], json.dumps(c["people"]))
+            if (new[0], new[1], new[2], new[4]) != (r["tags"], r["event_type"], r["event_confidence"], r["people"]):
+                conn.execute("""UPDATE articles SET tags=?, event_type=?, event_confidence=?, event_rationale=?, people=?
+                                WHERE id=?""", (*new, r["id"]))
                 changed += 1
     return changed
 

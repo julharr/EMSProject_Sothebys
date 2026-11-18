@@ -92,4 +92,13 @@ HELDOUT = [
     ("Supreme Court Rejects Appeal In Hollis Family Trust Dispute",
      "The ruling ends a decade-long fight between Margaret Hollis and her brother Edward Hollis over the family fortune.",
      ["Margaret Hollis", "Edward Hollis"]),
+    ("Inside Jensen Huang's Plan To Sell Nvidia Shares",
+     "Nvidia CEO Jensen Huang has adopted a plan to sell up to 6 million shares of the chipmaker this year.",
+     ["Jensen Huang"]),
+    ("Cash App Owner Block Sees Shares Jump As Jack Dorsey Bets On Bitcoin",
+     "Cash App and Square parent Block said co-founder Jack Dorsey will keep leading the company.",
+     ["Jack Dorsey"]),
+    ("Meet Lucy Guo, The Youngest Self-Made Woman Billionaire",
+     "Guo, 30, co-founded Scale AI and now runs Passes, a creator platform.",
+     ["Lucy Guo"]),
 ]
