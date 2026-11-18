@@ -571,7 +571,7 @@ const SOURCES = [
   {k:"sec", label:"SEC EDGAR (Form 4 insider filings)", used:"In use", gives:"Insider stock sales over $5M become buy signals; shares still held give a floor on net worth; role and company", real:"Free, no key; the SEC asks for an email in CONTACT in .env. US public-company insiders only"},
   {k:"rules", label:"Keyword rules", used:"In use", gives:"Turn the findings into collecting tags and markers", real:"Runs locally; no AI"},
   {k:"social", label:"Social media API", used:"Not used (paid)", gives:"Event attendance, collecting posts", real:"X API is pay per use; Instagram cannot look up individuals"},
-  {k:"forbes", label:"Forbes", used:"Not used (paid)", gives:"Net worth and rankings", real:"No public API; licensed feed needs a quote"},
+  {k:"forbes", label:"Forbes real-time billionaires (via rtb-api)", used:"In use", gives:"Net worth, rank, self-made, title, residence and children for about 5,000 billionaires", real:"Free, no key: a community copy of Forbes data on GitHub (MIT), updated about monthly, so each figure shows its list date. Billionaires only. Production use needs a Forbes data licence"},
   {k:"claude", label:"Claude", used:"Not used (paid)", gives:"AI tagging and research briefs", real:"Turn on later by setting FREE_APIS_ONLY=false"}
 ];
 const SRC_LABEL = Object.fromEntries(SOURCES.map(s=>[s.k,s.label]));
@@ -650,11 +650,13 @@ const tagHtml = t => t.tier ? `<span class="tag ${TIERS[t.tier].cls}${t.unv?" un
 const CC_BY_SA = "https://creativecommons.org/licenses/by-sa/4.0/";
 /* Short bio: first two sentences of the Wikipedia intro + Wikidata facts, credited as the licenses require. */
 function bioBlock(p){
-  if(!p.short_bio) return `<p class="note" style="margin:0">No Wikipedia page found. Likely a private individual, so research by hand.</p>`;
   const facts = (p.bio_facts||[]).map(([k,v])=>`<span>${esc(k)}</span><b>${esc(v)}</b>`).join("");
+  if(!p.short_bio) return facts
+    ? `<div class="facts" style="margin-top:0">${facts}</div><p class="note" style="margin:8px 0 0">No Wikipedia page found. Facts from the Forbes profile (via rtb-api). Verify before outreach.</p>`
+    : `<p class="note" style="margin:0">No Wikipedia page found. Likely a private individual, so research by hand.</p>`;
   return `<p style="margin:0">${esc(p.short_bio)}</p>
     ${facts?`<div class="facts">${facts}</div>`:""}
-    <p class="note" style="margin:8px 0 0">From <a class="lnk" href="${esc(p.wikipedia_url||"#")}" target="_blank" rel="noopener noreferrer">Wikipedia</a> (text <a class="lnk" href="${CC_BY_SA}" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>) and Wikidata (facts, CC0). Verify before outreach.</p>`;
+    <p class="note" style="margin:8px 0 0">From <a class="lnk" href="${esc(p.wikipedia_url||"#")}" target="_blank" rel="noopener noreferrer">Wikipedia</a> (text <a class="lnk" href="${CC_BY_SA}" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>) and Wikidata (facts, CC0)${p.worthSource==="forbes"?", with residence and family from Forbes via rtb-api":""}. Verify before outreach.</p>`;
 }
 const csvBio = p => p.short_bio ? `${p.short_bio} (Source: Wikipedia, CC BY-SA 4.0, ${p.wikipedia_url||""})` : "";
 const shownTags = t => [...t.collecting, ...t.unknown];
@@ -702,7 +704,7 @@ function renderOverview(){
   $("#ovBuy").innerHTML = buyPeople.sort((a,b)=>(PEOPLE[b].worth||0)-(PEOPLE[a].worth||0) || shownTags(tagsOf(b)).length-shownTags(tagsOf(a)).length).slice(0,6).map(id=>{ const t=tagsOf(id);
     return `<li data-person="${id}" tabindex="0"><div><div class="m-name">${esc(PEOPLE[id].name)}</div>
       <div class="tags" style="margin-top:5px">${shownTags(t).slice(0,3).map(tagHtml).join("")||`<span class="note">No collecting tags yet</span>`}</div></div>
-      <div class="m-right num"><b>${money(PEOPLE[id].worth)}</b><div class="note">${esc(PEOPLE[id].worth!=null?({news:"described as billionaire",sec:"SEC Form 4 holdings"}[PEOPLE[id].worthSource]||"Wikidata"):"net worth")}</div>${trackBtn(id)}</div></li>`; }).join("") || `<li class="note" style="cursor:default">No buyer profiles yet.</li>`;
+      <div class="m-right num"><b>${money(PEOPLE[id].worth)}</b><div class="note">${esc(PEOPLE[id].worth!=null?({news:"described as billionaire",sec:"SEC Form 4 holdings",forbes:"Forbes"}[PEOPLE[id].worthSource]||"Wikidata"):"net worth")}</div>${trackBtn(id)}</div></li>`; }).join("") || `<li class="note" style="cursor:default">No buyer profiles yet.</li>`;
 
   const counts={}; buyPeople.forEach(id=>shownTags(tagsOf(id)).forEach(t=>counts[t.key]=(counts[t.key]||0)+1));
   const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]||CATS[a[0]].tier-CATS[b[0]].tier); const max=rows.length?rows[0][1]:1;
@@ -862,6 +864,7 @@ const STEPS = [
   {k:"met", label:"The Met Collection API", desc:"Credit lines naming them, and the works' departments"},
   {k:"cleveland", label:"Cleveland Museum Open Access", desc:"Credit lines naming them, and the works' departments"},
   {k:"harvard", label:"Harvard Art Museums API", desc:"Credit lines naming them, and the works' departments"},
+  {k:"forbes", label:"Forbes billionaires list (rtb-api)", desc:"Net worth, rank, residence, family"},
   {k:"sec", label:"SEC EDGAR Form 4 filings", desc:"Insider sales, shares still held, role and company"},
   {k:"news", label:"The desk's stories", desc:"Everything pulled about them so far"},
   {k:"rules", label:"Keyword rules", desc:"Turn the findings into tags (no AI)"}
@@ -1106,7 +1109,7 @@ function eventPeople(ev){
     const marks = t.markers.filter(mk=>ev.cats.some(k=>CAT_WORDS[k] && CAT_WORDS[k].test(mk.label)));
     marks.forEach(mk=>{ score+=1.5; why.push({label:mk.label, kind:mk.kind}); });
     if(score>0){
-      const near = ev.city.split(" ").some(c=>CITY_RX[c] && CITY_RX[c].test(`${p.role||""} ${p.short_bio||p.bio||""}`));
+      const near = ev.city.split(" ").some(c=>CITY_RX[c] && CITY_RX[c].test(`${p.role||""} ${p.short_bio||p.bio||""} ${(p.bio_facts||[]).filter(f=>f[0]==="Lives in").map(f=>f[1]).join(" ")}`));
       if(near) score+=1;
       buyers.push({id, score, why, near, worth:p.worth||0});
     }

@@ -46,6 +46,10 @@ USE_CLAUDE = bool(ANTHROPIC_API_KEY) and not FREE_APIS_ONLY
 # Contact sent with every Wikipedia/Wikidata/museum request (Wikimedia asks automated tools for one).
 # Set CONTACT to an email or URL you're happy to share; defaults to the project's GitHub page.
 CONTACT = os.getenv("CONTACT", "https://github.com/julharr/EMSProject_Sothebys").strip()
+# Forbes real-time billionaires via the community rtb-api (free, no key; github.com/komed3/rtb-api).
+# The author plans a format change; to pin the older, frozen format use .../komed3/rtb-api/v1/api
+RTB_ENABLED = os.getenv("RTB_ENABLED", "true").lower() not in ("0", "false", "no")
+RTB_BASE = os.getenv("RTB_BASE", "https://raw.githubusercontent.com/komed3/rtb-api/main/api").strip()
 # SEC EDGAR (free, no key): insider sales from Form 4 filings become buy signals.
 # The SEC requires a User-Agent with contact details: set CONTACT to an email address.
 EDGAR_ENABLED = os.getenv("EDGAR_ENABLED", "true").lower() not in ("0", "false", "no")

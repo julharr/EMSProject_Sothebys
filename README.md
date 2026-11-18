@@ -24,6 +24,11 @@ without spending requests. "Pull now" simulates the next pull.
   - The Met Collection API, the Cleveland Museum of Art Open Access API and the Harvard Art Museums
     API (free key in `HARVARD_API_KEY`) for credit lines ("Gift of…", "Lent by…") and the departments
     of those works
+  - Forbes real-time billionaires via the community [rtb-api](https://github.com/komed3/rtb-api)
+    (free, no key): net worth, rank, self-made, title, residence and children for ~5,000 billionaires.
+    Only the 650 KB name index is downloaded (once a day); one small profile file is fetched per
+    matched person. Figures are Forbes's, about monthly, and shown with their list date. Fine for the
+    prototype; production use needs a Forbes data licence.
   - SEC EDGAR Form 4 filings (free, no key): an insider's open-market stock sale of $5M or more
     (`EDGAR_MIN_SALE_USD`) becomes a buy-signal story, and the stock they still hold sets a floor on
     their net worth. Checked every 10 minutes, with the last 3 days of filings read on first start.

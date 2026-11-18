@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 
-from . import config, db, edgar, enrich, museums
+from . import config, db, edgar, enrich, museums, rtb
 from .enrich import name_key
 
 log = logging.getLogger(__name__)
@@ -159,6 +159,22 @@ def bio_facts(wiki):
     return f
 
 
+def forbes_facts(info, wiki):
+    """Residence, children and marital status from the Forbes profile, where Wikidata has none."""
+    f, have = [], {k for k, _ in bio_facts(wiki)}
+    res = info.get("residence") or {}
+    where = ", ".join(x for x in (res.get("city"), res.get("state"), (res.get("country") or "").upper()) if x)
+    if where:
+        f.append(["Lives in", where])
+    if info.get("maritalStatus"):
+        f.append(["Marital status", info["maritalStatus"]])
+    if info.get("children") and "Children" not in have:
+        f.append(["Children", str(info["children"])])
+    if info.get("birthDate") and "Born" not in have:
+        f.append(["Born", info["birthDate"][:4]])
+    return f
+
+
 def parse_worth(label):
     """'$2.5B (2024)' -> 2.5e9; '$450M' -> 4.5e8; anything else -> None."""
     m = re.match(r"\$([\d.]+)\s*([BM])", label or "")
@@ -227,21 +243,31 @@ def fetch_sources(name):
     museums.met(name)
     museums.cleveland(name)
     museums.harvard(name)
+    if config.RTB_ENABLED:
+        rtb.lookup(name)
 
 
 MUSEUM_SRC = {"The Met": "met", "Cleveland Museum of Art": "cleveland", "Harvard Art Museums": "harvard"}
 
 
-def build_tags(name, wiki, met, cma, story_texts, ham=None, sec=None):
+def build_tags(name, wiki, met, cma, story_texts, ham=None, sec=None, forbes=None):
     ham = ham or {"credits": [], "error": None if config.HARVARD_API_KEY else "Not set up (add HARVARD_API_KEY to .env)"}
     news = " ".join(story_texts)
     bio = " ".join(filter(None, [wiki.get("bio"), wiki.get("description"), " ".join(wiki.get("occupations") or [])])) if wiki.get("found") else ""
     credits = (met.get("credits") or []) + (cma.get("credits") or []) + (ham.get("credits") or [])
     tags, find = [], {}
 
-    # Net worth: Wikidata if recorded, else "billionaire" in the coverage, else unknown.
+    # Net worth: Forbes (rtb-api) when they are on the current list, else Wikidata, else "billionaire"
+    # in the coverage, else SEC holdings (below), else unknown.
+    if forbes is None and config.RTB_ENABLED:
+        forbes = rtb.cached(name)
+    fb_current = bool(forbes) and rtb.is_current(forbes) and not (forbes.get("info") or {}).get("deceased")
     worth = parse_worth(wiki.get("net_worth")) if wiki.get("found") else None
-    if worth:
+    if fb_current and forbes.get("networth"):
+        worth = forbes["networth"] * 1e6
+        worth_label, worth_src = f"{edgar.money(worth)} · Forbes, {rtb.list_date(forbes)}", "forbes"
+        tags.append(["wealth", f"Forbes billionaire #{forbes.get('rank')} ({rtb.list_date(forbes)[-8:]})", ["forbes"]])
+    elif worth:
         worth_label, worth_src = f"{wiki['net_worth']} · Wikidata", "wikipedia"
         tags.append(["wealth", f"Net worth {wiki['net_worth']}", ["wikipedia"]])
     elif re.search(r"\bbillionaire\b", news + " " + bio, re.I):
@@ -255,7 +281,7 @@ def build_tags(name, wiki, met, cma, story_texts, ham=None, sec=None):
     if sec:
         top = max(sec, key=lambda r: r.get("holdings_value") or 0)
         held = top.get("holdings_value") or 0
-        if held and (worth is None or (worth_src != "wikipedia" and held > worth)):
+        if held and (worth is None or (worth_src not in ("wikipedia", "forbes") and held > worth)):
             tk = top.get("ticker") or top.get("issuer")
             worth, worth_label, worth_src = held, f"{edgar.money(held)}+ in {tk} stock · SEC Form 4", "sec"
         for r in sec[:3]:
@@ -263,6 +289,17 @@ def build_tags(name, wiki, met, cma, story_texts, ham=None, sec=None):
             tags.append(["wealth", f"Insider sale: {edgar.money(r.get('sale_value') or 0)} of {tk} (SEC Form 4, {str(r.get('filed_at'))[:10]})", ["sec"]])
         for role, issuer in dict.fromkeys((r.get("role"), r.get("issuer")) for r in sec):
             tags.append(["aff", f"{role} at {issuer}", ["sec"]])
+
+    info = (forbes or {}).get("info") or {}
+    if fb_current:
+        sm = info.get("selfMade") or {}
+        if sm.get("_is"):
+            tags.append(["wealth", "Self-made (Forbes)", ["forbes"]])
+        elif info.get("family"):
+            tags.append(["wealth", "Family fortune (Forbes)", ["forbes"]])
+        org = info.get("organization") or {}
+        if org.get("name") and org.get("title"):
+            tags.append(["aff", f"{org['title']}, {org['name']}", ["forbes"]])
 
     # Collecting categories: museum departments first (strongest evidence), then text.
     by_cat = {}
@@ -303,13 +340,22 @@ def build_tags(name, wiki, met, cma, story_texts, ham=None, sec=None):
     find["harvard"] = [f"{c.get('credit')} ({c.get('department')})" for c in ham.get("credits") or []][:4] or [ham.get("error") or "No credit lines naming them"]
     find["sec"] = [f"{r.get('role')}, {r.get('issuer')}: sold {edgar.money(r.get('sale_value') or 0)}, still holds {edgar.money(r.get('holdings_value') or 0)} ({str(r.get('filed_at'))[:10]})"
                    for r in sec][:4] or ["No Form 4 insider sales on file"]
+    if forbes:
+        res = info.get("residence") or {}
+        where = ", ".join(x for x in (res.get("city"), res.get("state"), (res.get("country") or "").upper()) if x)
+        find["forbes"] = ([f"On the Forbes list: #{forbes.get('rank')}, {edgar.money((forbes.get('networth') or 0) * 1e6)} ({rtb.list_date(forbes)})"]
+                          if fb_current else [f"Last on the Forbes list {rtb.list_date(forbes)}" + (" (deceased)" if info.get("deceased") else "")]) + \
+                         ([f"Lives in {where}"] if where else []) + \
+                         ([f"Wealth from {', '.join(info['source'][:3])}"] if info.get("source") else [])
+    else:
+        find["forbes"] = ["Not on the Forbes billionaires list (or name did not match)"] if config.RTB_ENABLED else ["Turned off (RTB_ENABLED=false)"]
     find["news"] = [f"{len(story_texts)} stor{'y' if len(story_texts) == 1 else 'ies'} on file"] if story_texts else ["No stories pulled for this name"]
     find["rules"] = [f"{len(tags)} tags from keyword rules (no AI)"]
 
     return {
         "bio": wiki.get("bio") if wiki.get("found") else None,
         "short_bio": short_bio(wiki.get("bio")) if wiki.get("found") else None,
-        "bio_facts": bio_facts(wiki),
+        "bio_facts": [f for f in bio_facts(wiki) if not (worth_src == "forbes" and f[0] == "Net worth")] + forbes_facts(info, wiki),
         "wikipedia_url": wiki.get("wikipedia_url"),
         "worth": worth, "worthLabel": worth_label, "worthSource": worth_src,
         "find": find, "tags": tags, "credits": credits[:8],
